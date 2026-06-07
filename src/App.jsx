@@ -349,7 +349,7 @@ function ModeSelect({onPick,room,onChangeRoom}){
   const [showPw,setShowPw]=useState(false);
   const [pw,setPw]=useState("");
   const [shake,setShake]=useState(false);
-  const ADMIN_PW="메롱";
+  const ADMIN_PW="4859";
   const tryAdmin=()=>{
     if(pw===ADMIN_PW){onPick("admin");}
     else{setShake(true);setPw("");setTimeout(()=>setShake(false),500);}
