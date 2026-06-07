@@ -26,18 +26,29 @@ const C = {
   sub: "#79839a", line: "#ebe6f3", ink: "#2a1d04",
 };
 const UNIT = 10;
-const TOTAL_ROUNDS = 6;
+const TOTAL_ROUNDS = 9;
 
 function getRoundMeta(round) {
-  if (round <= 4) return { label: `20대 ${round}달차`, decade: 20 };
-  if (round === 5) return { label: "30대", decade: 30 };
-  return { label: "40대", decade: 40 };
+  if (round <= 5) return { label: `20대 ${round}달차`, decade: 20 };
+  if (round === 6) return { label: "30대", decade: 30 };
+  if (round === 7) return { label: "40대", decade: 40 };
+  if (round === 8) return { label: "50대", decade: 50 };
+  return { label: "60대", decade: 60 };
 }
 
-/* ====== 효과음 ====== */
+/* ====== 효과음 (AudioContext 재사용) ====== */
+let _audioCtx = null;
+function unlockAudio() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === "suspended") _audioCtx.resume();
+  } catch(e) {}
+}
 function playSound(type) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    unlockAudio();
+    const ctx = _audioCtx;
+    if (!ctx) return;
     if (type === "news") {
       [[880,0],[660,0.13],[880,0.26]].forEach(([f,t]) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
@@ -71,21 +82,21 @@ function playSound(type) {
 /* ====== 직업 (연대별 월급 + 생활비) ====== */
 const JOBS = [
   { name:"의사", emoji:"🩺", color:"#ef4444", tag:"고소득·안정",
-    salary:{20:40,30:85,40:120}, living:{20:25,30:35,40:42} },
+    salary:{20:40,30:85,40:120,50:130,60:110}, living:{20:25,30:35,40:42,50:40,60:28} },
   { name:"사업가", emoji:"💼", color:"#f59e0b", tag:"수입 변동 큼",
-    salary:{20:[15,60],30:[20,100],40:[0,130]}, living:{20:18,30:25,40:30} },
+    salary:{20:[15,60],30:[20,100],40:[0,130],50:[0,120],60:[0,80]}, living:{20:18,30:25,40:30,50:28,60:20} },
   { name:"약사", emoji:"💊", color:"#10b981", tag:"탄탄한 전문직",
-    salary:{20:45,30:60,40:75}, living:{20:20,30:28,40:32} },
+    salary:{20:45,30:60,40:75,50:80,60:65}, living:{20:20,30:28,40:32,50:30,60:22} },
   { name:"대기업", emoji:"🏢", color:"#3b82f6", tag:"안정적 직장인",
-    salary:{20:35,30:50,40:65}, living:{20:18,30:25,40:30} },
+    salary:{20:35,30:50,40:65,50:70,60:55}, living:{20:18,30:25,40:30,50:28,60:20} },
   { name:"유튜버", emoji:"🎥", color:"#ec4899", tag:"대박 아니면 쪽박",
-    salary:{20:[3,65],30:[5,80],40:[2,90]}, living:{20:15,30:20,40:22} },
+    salary:{20:[3,65],30:[5,80],40:[2,90],50:[0,80],60:[0,50]}, living:{20:15,30:20,40:22,50:20,60:15} },
   { name:"공무원", emoji:"🏛️", color:"#6366f1", tag:"박봉이지만 철밥통",
-    salary:{20:22,30:30,40:38}, living:{20:14,30:20,40:23} },
+    salary:{20:22,30:30,40:38,50:42,60:38}, living:{20:14,30:20,40:23,50:22,60:16} },
   { name:"중소기업", emoji:"🏭", color:"#64748b", tag:"성실한 직장인",
-    salary:{20:20,30:26,40:32}, living:{20:14,30:19,40:22} },
+    salary:{20:20,30:26,40:32,50:34,60:28}, living:{20:14,30:19,40:22,50:21,60:15} },
   { name:"프리랜서", emoji:"🎨", color:"#14b8a6", tag:"자유롭지만 불안정",
-    salary:{20:[10,40],30:[12,55],40:[8,60]}, living:{20:15,30:20,40:24} },
+    salary:{20:[10,40],30:[12,55],40:[8,60],50:[5,50],60:[3,35]}, living:{20:15,30:20,40:24,50:22,60:15} },
 ];
 const jobByName = (n) => JOBS.find(j => j.name === n);
 const rollSalary = (job, decade) => {
@@ -100,6 +111,8 @@ function getLivingBreakdown(decade, total) {
     20: [{icon:"🏠",name:"월세·관리비",r:0.42},{icon:"🍚",name:"식비",r:0.28},{icon:"🚌",name:"교통비",r:0.16},{icon:"📱",name:"통신·구독료",r:0.14}],
     30: [{icon:"🏠",name:"주거비",r:0.36},{icon:"🍚",name:"식비·외식",r:0.24},{icon:"🚗",name:"교통·차량",r:0.2},{icon:"👨‍👩‍👧",name:"가족 생활비",r:0.2}],
     40: [{icon:"🏠",name:"주거비",r:0.3},{icon:"🍚",name:"식비·외식",r:0.2},{icon:"🚗",name:"교통·차량",r:0.18},{icon:"👨‍👩‍👧",name:"가족 생활비",r:0.2},{icon:"🏥",name:"건강관리",r:0.12}],
+    50: [{icon:"🏠",name:"주거비",r:0.28},{icon:"🍚",name:"식비",r:0.2},{icon:"🚗",name:"교통·차량",r:0.16},{icon:"👨‍👩‍👧",name:"가족 생활비",r:0.18},{icon:"🏥",name:"건강관리",r:0.18}],
+    60: [{icon:"🏠",name:"주거비",r:0.3},{icon:"🍚",name:"식비",r:0.25},{icon:"🚗",name:"교통비",r:0.15},{icon:"🏥",name:"의료·건강",r:0.3}],
   };
   const items = templates[decade] || templates[20];
   let rem = total;
@@ -125,6 +138,20 @@ const LIFE_EVENTS = {
     {id:"accident",icon:"🚨",title:"갑작스러운 사고 발생!",body:"예상치 못한 사고로 치료비·수리비가 생겼어요. 보험이 있으면 절반만 내요!",cost:35,insurance:true},
     {id:"lucky40",icon:"💰",title:"재테크 성공!",body:"꾸준히 모은 덕분에 추가 수익이 생겼어요!",cost:-20,insurance:false},
     {id:"remodel",icon:"🏡",title:"집 수리비가 나왔어요",body:"살던 집을 고쳐야 했어요. 생각보다 비용이 많이 들었네요.",cost:25,insurance:false},
+  ],
+  50: [
+    {id:"tuition50",icon:"🎓",title:"자녀 대학 등록금 폭탄!",body:"자녀가 대학에 입학했어요. 4년치 등록금이 부담이에요.",cost:30,insurance:false},
+    {id:"health50",icon:"💊",title:"건강검진에서 이상이 발견됐어요",body:"정기 검진에서 이상 소견이 나왔어요. 치료비가 필요해요. 보험이 있으면 절반만 내요.",cost:35,insurance:true},
+    {id:"inheritance",icon:"🏠",title:"부모님 유산을 받았어요",body:"부모님께서 남겨주신 재산이 생겼어요.",cost:-25,insurance:false},
+    {id:"bonus50",icon:"🏆",title:"성과급이 나왔어요!",body:"수십 년 근속의 결실! 큰 성과급이 들어왔어요.",cost:-20,insurance:false},
+    {id:"travel50",icon:"✈️",title:"해외여행을 다녀왔어요!",body:"오랫동안 꿈꿔온 여행을 떠났어요. 행복했지만 비용이 들었네요.",cost:15,insurance:false},
+  ],
+  60: [
+    {id:"medical60",icon:"🏥",title:"큰 병이 찾아왔어요",body:"건강에 이상이 생겼어요. 큰 치료비가 필요해요. 보험이 있으면 절반만 내요.",cost:50,insurance:true},
+    {id:"grandchild",icon:"👶",title:"손자·손녀가 태어났어요!",body:"기쁜 소식이에요! 용돈을 챙겨줬어요.",cost:10,insurance:false},
+    {id:"hobby60",icon:"🎨",title:"새 취미를 시작했어요",body:"그림·골프·텃밭… 즐거운 은퇴 생활이에요.",cost:8,insurance:false},
+    {id:"windfall60",icon:"💰",title:"오랜 투자의 결실!",body:"젊을 때부터 꾸준히 모은 덕분에 큰 수익이 생겼어요!",cost:-30,insurance:false},
+    {id:"pension60",icon:"🏛️",title:"연금 수령 시작!",body:"드디어 연금이 나오기 시작했어요. 생활이 안정됐어요.",cost:-15,insurance:false},
   ],
 };
 
@@ -333,11 +360,12 @@ function ModeSelect({onPick,room,onChangeRoom}){
 }
 
 /* ====== 생활비 청구서 (편지 애니메이션) ====== */
-function LivingBill({decade,livingAmt,salaryAmt,onConfirm}){
+function LivingBill({round,livingAmt,salaryAmt,onConfirm}){
   const [opened,setOpened]=useState(false);
   const [canConfirm,setCanConfirm]=useState(false);
+  const meta=getRoundMeta(round);
+  const decade=meta.decade;
   const breakdown=getLivingBreakdown(decade,livingAmt);
-  const meta=getRoundMeta(decade===20?1:decade===30?5:6);
   const investable=salaryAmt-livingAmt;
 
   useEffect(()=>{
@@ -381,7 +409,7 @@ function LivingBill({decade,livingAmt,salaryAmt,onConfirm}){
             )}
             <div style={{marginTop:14}}>
               {canConfirm
-                ? <Btn fill full onClick={onConfirm}>확인했어요 →</Btn>
+                ? <Btn fill full onClick={()=>{unlockAudio();onConfirm();}}>확인했어요 →</Btn>
                 : <div style={{textAlign:"center",color:C.sub,fontSize:13,padding:"12px 0",animation:"blink 1.4s infinite"}}>⏳ 청구서를 확인하는 중… 잠시만요</div>}
             </div>
           </div>
@@ -478,7 +506,8 @@ function PlayGame({onBack,room}){
       if (!r) return;
       if (g.phase==="invest"&&(r.lastSalaryRound||0)<g.round) {
         beginRound(r,g.round);
-      } else if (g.phase==="news"&&g.newsId&&stepRef.current!=="news") {
+      } else if (g.phase==="news"&&g.newsId&&stepRef.current==="waiting") {
+        // 투자를 마친(waiting) 학생만 속보로 이동 — 청구서/투자중인 학생은 영향 없음
         setEvent(eventById(g.newsId)); setStep("news"); playSound("news");
       }
     };
@@ -503,9 +532,9 @@ function PlayGame({onBack,room}){
   const changeJob=(job)=>{
     const decade=getRoundMeta(roundRef.current).decade;
     const living=getLiving(job,decade);
-    const r={...rec,job:job.name,jobChanged:true,checking:0,lastSalaryAmt:0,lastLivingAmt:living};
+    const r={...rec,job:job.name,jobChanged:true,checking:0,lastSalaryAmt:0,lastLivingAmt:living,ready:true};
     setRec(r); recRef.current=r; write(r);
-    setStep("invest");
+    setStep("jobchanged");
   };
 
   const confirmBill=()=>{
@@ -545,8 +574,26 @@ function PlayGame({onBack,room}){
   if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack}/>;
   if (step==="job") return <JobPick name={name} onPickJob={startJob} onBack={()=>setStep("name")}/>;
   if (step==="rejob") return <JobPick name={name} onPickJob={changeJob} onBack={()=>setStep("invest")} rejob/>;
+  if (step==="jobchanged") {
+    const newJob=jobByName(rec?.job);
+    return (
+      <Centered>
+        <div style={{width:"100%",maxWidth:360,background:C.panel,border:`2px solid #fb923c`,borderRadius:20,padding:28,textAlign:"center",animation:"pop .4s"}}>
+          <div style={{fontSize:48}}>{newJob?.emoji}</div>
+          <div style={{fontFamily:"'Black Han Sans'",fontSize:22,color:"#fb923c",marginTop:8}}>🔄 이직 완료!</div>
+          <div style={{color:C.text,fontWeight:700,fontSize:16,marginTop:12}}>{newJob?.name}으로 이직했어요</div>
+          <div style={{background:"#fff8f0",border:"1px solid #fb923c",borderRadius:12,padding:"12px 16px",marginTop:16,color:"#92400e",fontSize:14,lineHeight:1.6}}>
+            ⚠️ 이직한 달에는 <b>월급이 없어요</b>.<br/>
+            이번 달은 투자를 할 수 없고,<br/>
+            <b>다음 달부터</b> 새 직업으로 월급을 받아요!
+          </div>
+          <div style={{marginTop:18}}><Btn fill full color="#fb923c" onClick={()=>setStep("waiting")}>알겠어요 →</Btn></div>
+        </div>
+      </Centered>
+    );
+  }
   if (step==="end") return <FinalRanking list={finalList} meId={idRef.current} onBack={onBack}/>;
-  if (step==="bill"&&rec) return <LivingBill decade={getRoundMeta(round).decade} livingAmt={rec.lastLivingAmt||0} salaryAmt={rec.lastSalaryAmt||0} onConfirm={confirmBill}/>;
+  if (step==="bill"&&rec) return <LivingBill round={round} livingAmt={rec.lastLivingAmt||0} salaryAmt={rec.lastSalaryAmt||0} onConfirm={confirmBill}/>;
   if (step==="lifeEvent"&&pendingLifeEv) return <LifeEventCard lifeEvent={pendingLifeEv} hasInsurance={(rec?.insurance||0)>=5} onConfirm={confirmLifeEvent}/>;
   if (!rec) return null;
 
