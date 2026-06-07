@@ -718,22 +718,46 @@ function InvestScreen({rec,onSubmit,onChangeJob}){
   const diff=available-used, matched=diff===0;
   const maxFor=(k)=>available-(used-(a[k]||0));
   const set=(k,v)=>setA(prev=>({...prev,[k]:Math.min(maxFor(k),Math.max(0,v))}));
+  const totalNet=netWorth(rec);
+
   return(
     <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:16,marginTop:14}}>
+
+      {/* 누적 총자산 요약 */}
+      <div style={{background:"linear-gradient(90deg,#fff8e8,#fdf4ff)",border:`1px solid ${C.gold}`,borderRadius:12,padding:"10px 14px",marginBottom:14}}>
+        <div style={{fontSize:12,color:C.sub,marginBottom:4}}>💰 지금까지 모은 총자산</div>
+        <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:C.gold}}>{fmt(totalNet)}</span>
+          {ALLOC.filter(it=>it.key!=="insurance"&&it.key!=="parents").map(it=>{
+            const v=rec[it.key]||0;
+            return v>0?(
+              <span key={it.key} style={{fontSize:12,color:C.sub}}>
+                <span style={{color:it.color}}>{it.emoji}</span> {fmt(v)}
+              </span>
+            ):null;
+          })}
+          {(rec.insurance||0)>0&&<span style={{fontSize:12,color:C.sub}}>🛡️ {fmt(rec.insurance)}</span>}
+          {(rec.parents||0)>0&&<span style={{fontSize:12,color:C.sub}}>🎁 {fmt(rec.parents)}</span>}
+        </div>
+      </div>
+
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-        <SectionLabel>💸 투자금을 배분하세요</SectionLabel>
-        <span style={{fontSize:12,color:C.sub}}>투자 가능 {fmt(available)}</span>
+        <SectionLabel>💸 이번 달 투자금 배분</SectionLabel>
+        <span style={{fontSize:12,color:C.sub}}>배분 가능 {fmt(available)}</span>
       </div>
       <div style={{textAlign:"center",margin:"6px 0 10px"}}>
-        <span style={{color:C.sub,fontSize:12}}>배분할 총액 </span>
         <span style={{fontFamily:"'Black Han Sans'",color:C.gold,fontSize:20}}>{fmt(available)}</span>
         <span style={{color:diff>0?C.red:C.green,fontSize:13,fontWeight:700,marginLeft:10}}>
           {diff>0?`(${fmt(diff)} 남음)`:"✅ 완료"}
         </span>
       </div>
+
       <div style={{display:"grid",gap:10}}>
         {ALLOC.map(item=>{
           const maxV=maxFor(item.key);
+          const existing=rec[item.key]||0;
+          const adding=a[item.key]||0;
+          const afterTotal=existing+adding;
           return(
             <div key={item.key} style={{background:C.panel2,borderRadius:12,padding:10}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -742,20 +766,28 @@ function InvestScreen({rec,onSubmit,onChangeJob}){
                   <div style={{fontWeight:900,color:item.color}}>{item.name}</div>
                   <div style={{fontSize:11,color:C.sub}}>{item.hint}</div>
                 </div>
-                <div style={{fontFamily:"'Black Han Sans'",color:C.gold,minWidth:80,textAlign:"right"}}>{fmt(a[item.key])}</div>
+                {/* 기존 보유 + 이번 추가 = 합계 */}
+                <div style={{textAlign:"right",fontSize:12,lineHeight:1.5}}>
+                  {existing>0&&<div style={{color:C.sub}}>기존 {fmt(existing)}</div>}
+                  {adding>0&&<div style={{color:item.color,fontWeight:700}}>+{fmt(adding)}</div>}
+                  <div style={{fontFamily:"'Black Han Sans'",color:C.gold,fontSize:15}}>
+                    {afterTotal>0?`= ${fmt(afterTotal)}`:fmt(adding)}
+                  </div>
+                </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
-                <Stepper onClick={()=>set(item.key,a[item.key]-5)}>-5</Stepper>
-                <Stepper onClick={()=>set(item.key,a[item.key]-1)}>-1</Stepper>
-                <input type="range" min={0} max={maxV} value={a[item.key]}
+                <Stepper onClick={()=>set(item.key,adding-5)}>-5</Stepper>
+                <Stepper onClick={()=>set(item.key,adding-1)}>-1</Stepper>
+                <input type="range" min={0} max={maxV} value={adding}
                   onChange={e=>set(item.key,+e.target.value)} style={{flex:1,accentColor:item.color}}/>
-                <Stepper onClick={()=>set(item.key,a[item.key]+1)}>+1</Stepper>
-                <Stepper onClick={()=>set(item.key,a[item.key]+5)}>+5</Stepper>
+                <Stepper onClick={()=>set(item.key,adding+1)}>+1</Stepper>
+                <Stepper onClick={()=>set(item.key,adding+5)}>+5</Stepper>
               </div>
             </div>
           );
         })}
       </div>
+
       <div style={{marginTop:14}}>
         <Btn fill full disabled={!matched} onClick={()=>onSubmit(a)}>{matched?"투자 확정 →":`아직 ${fmt(diff)} 남았어요`}</Btn>
       </div>
