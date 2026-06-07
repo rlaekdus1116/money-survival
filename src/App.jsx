@@ -336,14 +336,16 @@ function ModeSelect({onPick,room,onChangeRoom}){
 /* ====== 생활비 청구서 (편지 애니메이션) ====== */
 function LivingBill({decade,livingAmt,salaryAmt,onConfirm}){
   const [opened,setOpened]=useState(false);
+  const [canConfirm,setCanConfirm]=useState(false);
   const breakdown=getLivingBreakdown(decade,livingAmt);
   const meta=getRoundMeta(decade===20?1:decade===30?5:6);
   const investable=salaryAmt-livingAmt;
 
   useEffect(()=>{
     playSound("bill");
-    const t=setTimeout(()=>setOpened(true),700);
-    return()=>clearTimeout(t);
+    const t1=setTimeout(()=>setOpened(true),700);
+    const t2=setTimeout(()=>setCanConfirm(true),10000);
+    return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[]);
 
   return(
@@ -378,7 +380,11 @@ function LivingBill({decade,livingAmt,salaryAmt,onConfirm}){
                 ⚠️ 생활비가 월급보다 많아요! 이번 달은 적자예요.
               </div>
             )}
-            <div style={{marginTop:14}}><Btn fill full onClick={onConfirm}>확인했어요 →</Btn></div>
+            <div style={{marginTop:14}}>
+              {canConfirm
+                ? <Btn fill full onClick={onConfirm}>확인했어요 →</Btn>
+                : <div style={{textAlign:"center",color:C.sub,fontSize:13,padding:"12px 0",animation:"blink 1.4s infinite"}}>⏳ 청구서를 확인하는 중… 잠시만요</div>}
+            </div>
           </div>
         )}
       </div>
@@ -527,11 +533,10 @@ function PlayGame({mode,onBack,room}){
     r.savings+=(alloc.savings||0); r.luxury+=(alloc.luxury||0);
     r.insurance=(r.insurance||0)+(alloc.insurance||0);
     r.parents+=(alloc.parents||0); r.checking=(alloc.checking||0);
-    if (isClass){r.ready=true;setRec(r);recRef.current=r;setStep("waiting");write(r);}
-    else{
-      const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
-      setRec(r);recRef.current=r;setEvent(ev);setStep("news");playSound("news");
-    }
+    if (isClass) r.ready=true;
+    setRec(r); recRef.current=r;
+    if (isClass) write(r);
+    setStep("waiting");
   };
 
   const reveal=()=>{
@@ -581,7 +586,14 @@ function PlayGame({mode,onBack,room}){
         <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:26,marginTop:14,textAlign:"center"}}>
           <div style={{fontSize:40,animation:"blink 1.6s infinite"}}>📡</div>
           <div style={{fontWeight:900,marginTop:8}}>투자 완료! 속보 대기 중…</div>
-          <div style={{color:C.sub,fontSize:13,marginTop:6}}>모두 투자를 마치면 다연쌤이 속보를 띄웁니다.</div>
+          {isClass
+            ? <div style={{color:C.sub,fontSize:13,marginTop:6}}>모두 투자를 마치면 다연쌤이 속보를 띄웁니다.</div>
+            : <div style={{marginTop:16}}>
+                <Btn fill color={C.red} onClick={()=>{
+                  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+                  setEvent(ev); setStep("news"); playSound("news");
+                }}>📰 속보 띄우기</Btn>
+              </div>}
         </div>
       )}
       {step==="news"&&(
