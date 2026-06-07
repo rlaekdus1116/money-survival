@@ -254,7 +254,10 @@ function applyNews(rec, event, round) {
   ["bitcoin","stock","savings","luxury","checking"].forEach(k => {
     const before=rec[k]||0, rate=r[k]||0;
     if (before<=0&&rate===0) return;
-    const after=Math.max(0,Math.round(before*(1+rate)));
+    // 소액일 때 반올림으로 변동이 0이 되는 걸 방지 — 최소 1칸은 변동
+    let after=Math.max(0,Math.round(before*(1+rate)));
+    if (rate>0 && before>0 && after<=before) after=before+1;
+    if (rate<0 && before>0 && after>=before) after=Math.max(0,before-1);
     const diff=after-before; rec[k]=after; total+=diff;
     if (before>0||rate!==0) lines.push({key:k,before,after,diff,rate});
   });
