@@ -160,6 +160,7 @@ const ASSETS = [
   {key:"bitcoin",name:"비트코인",color:"#f7931a"},
   {key:"stock",name:"주식",color:"#34d399"},
   {key:"savings",name:"적금",color:"#60a5fa"},
+  {key:"realestate",name:"부동산",color:"#fb923c"},
   {key:"luxury",name:"명품",color:"#c084fc"},
   {key:"checking",name:"입출금통장",color:"#94a3b8"},
 ];
@@ -169,6 +170,7 @@ const ALLOC = [
   {key:"bitcoin",name:"비트코인",emoji:"₿",color:"#f7931a",hint:"고위험 고수익"},
   {key:"stock",name:"주식",emoji:"📈",color:"#34d399",hint:"중위험"},
   {key:"savings",name:"적금",emoji:"🏦",color:"#60a5fa",hint:"안전·소폭이익"},
+  {key:"realestate",name:"부동산",emoji:"🏠",color:"#fb923c",hint:"집값 오르면 큰 수익 · 경기침체엔 하락"},
   {key:"luxury",name:"명품",emoji:"👜",color:"#c084fc",hint:"감가 위험"},
   {key:"insurance",name:"보험",emoji:"🛡️",color:"#f43f5e",hint:"사고·질병 발생 시 손실 절반 보장"},
   {key:"parents",name:"부모님 용돈",emoji:"🎁",color:"#fb7185",hint:"효도지수↑ (가끔 보답)"},
@@ -206,19 +208,23 @@ const EVENTS = [
   {id:"crisis",cat:"국제",icon:"🌪️",title:"전 세계 경제가 흔들려요! 모든 자산이 동시에 떨어지고 있어요",
     body:"큰 경제 위기가 오면 코인도, 주식도, 명품도 다 같이 떨어져요. 현금만 안전해요.",
     ticker:"주식 -38% · 비트코인 -35% · 명품 급랭",
-    returns:{bitcoin:-0.35,stock:-0.38,savings:0.0,luxury:-0.18}},
+    returns:{bitcoin:-0.35,stock:-0.38,savings:0.0,luxury:-0.18,realestate:-0.15}},
   {id:"filial",cat:"사회",icon:"🎁",title:"부모님이 목돈으로 화답! 효도가 재테크예요",
     body:"꾸준히 용돈을 드린 자녀들에게 부모님이 목돈을 돌려주는 사례가 화제예요.",
     ticker:"효도 누적액의 80% 보답 · 따뜻한 미담",
     returns:{savings:0.004},parentsReturn:0.8},
   {id:"realestate",cat:"부동산",icon:"🏠",title:"집값이 다시 오르고 있어요!",
-    body:"도심 아파트를 중심으로 부동산 가격이 다시 상승세예요.",
-    ticker:"부동산 상승 · 전세 품귀 · 매수 문의 급증",
-    returns:{savings:0.02,stock:0.08,luxury:0.05}},
+    body:"도심 아파트를 중심으로 부동산 가격이 상승세예요. 부동산에 투자한 사람은 큰 수익이 났어요!",
+    ticker:"부동산 +30% · 전세 품귀 · 아파트 매수 문의 급증",
+    returns:{realestate:0.3,bitcoin:0.05}},
+  {id:"realestate_drop",cat:"부동산",icon:"🏚️",title:"집값이 떨어지고 있어요!",
+    body:"금리 인상과 경기 둔화로 아파트 값이 내려가고 있어요. 부동산 투자자는 주의하세요.",
+    ticker:"부동산 -20% · 거래 절벽 · 역전세 우려",
+    returns:{realestate:-0.2,stock:-0.05}},
   {id:"recession",cat:"경제",icon:"😰",title:"경기가 나빠지고 있어요 — 주머니가 얇아지는 중",
     body:"경기가 나빠지면 회사 실적이 떨어지고 주가도 내려가요.",
     ticker:"주식 -20% · 소비 위축 · 경기 둔화",
-    returns:{stock:-0.2,bitcoin:-0.1,luxury:-0.08,savings:0.005}},
+    returns:{stock:-0.2,bitcoin:-0.1,luxury:-0.08,realestate:-0.1,savings:0.005}},
 ];
 const eventById = (id) => EVENTS.find(e => e.id === id);
 
@@ -236,7 +242,7 @@ const fmt = (units) => {
   if (a>=10000){const e=Math.floor(a/10000),r=a%10000;return `${s}${e}억${r?" "+r.toLocaleString()+"만":""}원`;}
   return `${s}${a.toLocaleString()}만원`;
 };
-const netWorth = (p) => (p.bitcoin||0)+(p.stock||0)+(p.savings||0)+(p.luxury||0)+(p.checking||0);
+const netWorth = (p) => (p.bitcoin||0)+(p.stock||0)+(p.savings||0)+(p.realestate||0)+(p.luxury||0)+(p.checking||0);
 const uid = () => Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
 
 /* ====== 은퇴 시뮬레이션 ====== */
@@ -251,7 +257,7 @@ function calcRetirement(assets) {
 function applyNews(rec, event, round) {
   const r = event.returns||{};
   const lines=[]; let total=0;
-  ["bitcoin","stock","savings","luxury","checking"].forEach(k => {
+  ["bitcoin","stock","savings","realestate","luxury","checking"].forEach(k => {
     const before=rec[k]||0, rate=r[k]||0;
     if (before<=0&&rate===0) return;
     // 소액일 때 반올림으로 변동이 0이 되는 걸 방지 — 최소 1칸은 변동
@@ -362,6 +368,89 @@ function ModeSelect({onPick,room,onChangeRoom}){
   );
 }
 
+/* ====== 연대 전환 화면 ====== */
+const AGE_MSGS = {
+  30:{emoji:"👨",color:"#3b82f6",title:"어느새 30대!",
+    joke:"🚨 급속 노화 진행 완료! +10살",
+    lines:["결혼도 해야 하고, 집도 사야 하고…","지출이 확 늘어나는 시기예요!","분산 투자가 더욱 중요해집니다 💪"]},
+  40:{emoji:"🧑‍🦳",color:"#8b5cf6",title:"벌써 40대!",
+    joke:"⏩ 또 10년 순삭! 허리 조심하세요 🏥",
+    lines:["자녀 학원비에 부모님 병원비까지…","지갑이 사방에서 털리는 중 😰","보험이 있으면 조금은 버텨요!"]},
+  50:{emoji:"👴",color:"#f59e0b",title:"50대 입성!",
+    joke:"⏩ 급속 노화 +10년! 은퇴가 보인다! 🏖️",
+    lines:["드디어 은퇴 카운트다운 시작!","지금까지 모은 자산이 노후를 결정해요","건강도 챙기고, 돈도 챙기세요 🤔"]},
+  60:{emoji:"🏖️",color:"#10b981",title:"드디어 60대!",
+    joke:"🎉 최종 보스 해금 완료! 은퇴 타임!",
+    lines:["마지막 챕터가 시작됩니다!","그동안 어디에 투자하셨나요?","행복한 노후를 보낼 수 있을까요? 😊"]},
+};
+function AgeTransitionScreen({info,onContinue}){
+  const msg=AGE_MSGS[info.to]||{emoji:"🎂",color:C.gold,title:`${info.to}대!`,joke:"",lines:[]};
+  return(
+    <Centered>
+      <div style={{textAlign:"center",maxWidth:340,animation:"pop .5s"}}>
+        <div style={{fontSize:60,animation:"blink 0.4s 4"}}>⏩</div>
+        <div style={{fontSize:70,marginTop:-4,animation:"pop 0.5s 0.4s both"}}>{msg.emoji}</div>
+        <div style={{fontFamily:"'Black Han Sans'",fontSize:26,color:msg.color,marginTop:10}}>{msg.title}</div>
+        <div style={{background:`${msg.color}22`,border:`2px solid ${msg.color}`,borderRadius:12,padding:"8px 14px",marginTop:10,
+          fontFamily:"'Black Han Sans'",color:msg.color,fontSize:15}}>{msg.joke}</div>
+        <div style={{background:C.panel,borderRadius:14,padding:"12px 16px",marginTop:12,display:"grid",gap:4}}>
+          {msg.lines.map((l,i)=><div key={i} style={{color:C.sub,fontSize:14}}>{l}</div>)}
+        </div>
+        <div style={{marginTop:8,color:C.sub,fontSize:13}}>{info.from}대 → <b style={{color:msg.color}}>{info.to}대</b>로 이동!</div>
+        <div style={{marginTop:16}}><Btn fill full color={msg.color} onClick={onContinue}>다음 →</Btn></div>
+      </div>
+    </Centered>
+  );
+}
+
+/* ====== 중간 순위 화면 ====== */
+function MidRankingScreen({room,round,onContinue}){
+  const [players,setPlayers]=useState([]);
+  const ppfx=mkPPfx(room);
+  useEffect(()=>{
+    const fetch=async()=>{
+      const keys=await sList(ppfx);
+      const list=(await Promise.all(keys.map(k=>sGet(k)))).filter(Boolean).sort((a,b)=>netWorth(b)-netWorth(a));
+      setPlayers(list);
+    };
+    fetch(); const iv=setInterval(fetch,3000); return()=>clearInterval(iv);
+  },[]);
+  const medals=["🥇","🥈","🥉"];
+  const meta=getRoundMeta(round);
+  return(
+    <div style={{maxWidth:480,margin:"0 auto",padding:16,animation:"pop .4s"}}>
+      <div style={{textAlign:"center",marginBottom:14}}>
+        <div style={{fontSize:44}}>🏅</div>
+        <Title size={24}>중간 순위 발표!</Title>
+        <div style={{color:C.sub,marginTop:4,fontSize:13}}>{meta.label} 시작 전 현재 순위예요</div>
+      </div>
+      <div style={{display:"grid",gap:6}}>
+        {players.map((p,i)=>{
+          const job=jobByName(p.job),net=netWorth(p);
+          return(
+            <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,background:C.panel,
+              border:`2px solid ${i<3?C.gold:C.line}`,borderRadius:12,padding:"10px 14px",
+              animation:`pop ${0.1+i*0.05}s`}}>
+              <span style={{fontFamily:"'Black Han Sans'",width:28,fontSize:i<3?22:16,
+                color:i===0?"#e8c14d":i===1?"#cbd5e1":i===2?"#cd7f32":C.sub}}>
+                {i<3?medals[i]:i+1}
+              </span>
+              <span style={{fontSize:22}}>{job?.emoji}</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700}}>{p.name}</div>
+                <div style={{fontSize:11,color:C.sub}}>{p.job}</div>
+              </div>
+              <div style={{fontFamily:"'Black Han Sans'",color:C.gold,fontSize:16}}>{fmt(net)}</div>
+            </div>
+          );
+        })}
+        {players.length===0&&<div style={{color:C.sub,textAlign:"center",padding:20}}>불러오는 중…</div>}
+      </div>
+      <div style={{marginTop:16}}><Btn fill full onClick={onContinue}>투자 계속하기 →</Btn></div>
+    </div>
+  );
+}
+
 /* ====== 생활비 청구서 (편지 애니메이션) ====== */
 function LivingBill({round,livingAmt,salaryAmt,onConfirm}){
   const [opened,setOpened]=useState(false);
@@ -374,7 +463,7 @@ function LivingBill({round,livingAmt,salaryAmt,onConfirm}){
   useEffect(()=>{
     playSound("bill");
     const t1=setTimeout(()=>setOpened(true),700);
-    const t2=setTimeout(()=>setCanConfirm(true),10000);
+    const t2=setTimeout(()=>setCanConfirm(true),5000);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[]);
 
@@ -466,11 +555,14 @@ function PlayGame({onBack,room}){
   const [event,setEvent]=useState(null);
   const [finalList,setFinalList]=useState([]);
   const [pendingLifeEv,setPendingLifeEv]=useState(null);
+  const [ageInfo,setAgeInfo]=useState(null);
   const idRef=useRef(uid());
   const recRef=useRef(null),roundRef=useRef(1),stepRef=useRef("name");
   recRef.current=rec; roundRef.current=round; stepRef.current=step;
 
   const write=(r,rnd)=>sSet(pkey(idRef.current),{...r,id:idRef.current,name,round:rnd??roundRef.current});
+
+  const RANK_ROUNDS=[3,6,8]; // 순위 보여주는 라운드
 
   const beginRound=(r,rnd)=>{
     const job=jobByName(r.job);
@@ -481,7 +573,8 @@ function PlayGame({onBack,room}){
     const nr={...r,checking:investable,lastSalaryAmt:sal,lastLivingAmt:living,lastSalaryRound:rnd,ready:false,lastResult:null};
     let lifeEv=null;
     const prevDecade=getRoundMeta(Math.max(1,rnd-1)).decade;
-    if (decade!==prevDecade&&LIFE_EVENTS[decade]) {
+    const isNewDecade=decade!==prevDecade&&rnd>1;
+    if (isNewDecade&&LIFE_EVENTS[decade]) {
       const arr=LIFE_EVENTS[decade];
       lifeEv=arr[Math.floor(Math.random()*arr.length)];
     }
@@ -490,7 +583,18 @@ function PlayGame({onBack,room}){
     setPendingLifeEv(lifeEv);
     setEvent(null);
     write(nr,rnd);
-    setStep("bill");
+    // 단계 결정: 연대전환 → 중간순위 → 청구서
+    const showRank=RANK_ROUNDS.includes(rnd);
+    if (isNewDecade) {
+      setAgeInfo({from:prevDecade,to:decade,rankNext:showRank});
+      setStep("ageTransition");
+    } else if (showRank) {
+      setAgeInfo(null);
+      setStep("ranking");
+    } else {
+      setAgeInfo(null);
+      setStep("bill");
+    }
   };
 
   useEffect(()=>{
@@ -557,8 +661,8 @@ function PlayGame({onBack,room}){
     if (ALLOC.reduce((s,a)=>s+(alloc[a.key]||0),0)!==rec.checking) return;
     const r={...rec};
     r.bitcoin+=(alloc.bitcoin||0); r.stock+=(alloc.stock||0);
-    r.savings+=(alloc.savings||0); r.luxury+=(alloc.luxury||0);
-    r.insurance=(r.insurance||0)+(alloc.insurance||0);
+    r.savings+=(alloc.savings||0); r.realestate=(r.realestate||0)+(alloc.realestate||0);
+    r.luxury+=(alloc.luxury||0); r.insurance=(r.insurance||0)+(alloc.insurance||0);
     r.parents+=(alloc.parents||0); r.checking=(alloc.checking||0);
     r.ready=true;
     setRec(r); recRef.current=r;
@@ -577,6 +681,8 @@ function PlayGame({onBack,room}){
   if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack}/>;
   if (step==="job") return <JobPick name={name} onPickJob={startJob} onBack={()=>setStep("name")}/>;
   if (step==="rejob") return <JobPick name={name} onPickJob={changeJob} onBack={()=>setStep("invest")} rejob/>;
+  if (step==="ageTransition"&&ageInfo) return <AgeTransitionScreen info={ageInfo} onContinue={()=>setStep(ageInfo.rankNext?"ranking":"bill")}/>;
+  if (step==="ranking") return <MidRankingScreen room={room} round={round} onContinue={()=>setStep("bill")}/>;
   if (step==="jobchanged") {
     const newJob=jobByName(rec?.job);
     return (
