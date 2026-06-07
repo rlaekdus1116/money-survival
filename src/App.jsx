@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { sGet, sSet, sList, sDel } from "./storage";
 
 /* =========================================================
-   머니 서바이벌 — 직업 / 월급 / 분산투자 / 뉴스속보
+   종암 투자왕 — 직업 / 월급 / 분산투자 / 뉴스속보
    · 혼자 연습: 한 화면에서 완결 (저장 불필요)
    · 수업 참여: 다연쌤이 '속보 띄우기'를 누르면 전원 동시에 속보 (공유 저장 필요)
    · 다연쌤: 라운드/속보 제어 + 실시간 현황판
@@ -162,7 +162,7 @@ function RoomSelect({ onPick }) {
     <Centered>
       <div style={{ textAlign: "center", animation: "pop .4s" }}>
         <div style={{ fontSize: 54 }}>🏫</div>
-        <Title size={38}>머니 서바이벌</Title>
+        <Title size={38}>종암 투자왕</Title>
         <p style={{ color: C.sub, marginTop: 8 }}>우리 반을 선택하세요</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginTop: 20, maxWidth: 320, marginInline: "auto" }}>
           {ROOMS.map((r) => (
@@ -206,7 +206,7 @@ function ModeSelect({ onPick, room, onChangeRoom }) {
     <Centered>
       <div style={{ textAlign: "center", animation: "pop .4s" }}>
         <div style={{ fontSize: 54 }}>💰</div>
-        <Title size={44}>머니 서바이벌</Title>
+        <Title size={44}>종암 투자왕</Title>
         <div style={{ marginTop: 8, display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
           <Badge color={C.gold}>2학년 {room}</Badge>
           <button onClick={onChangeRoom} style={{ color: C.sub, background: "none", border: "none", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>반 변경</button>
@@ -434,7 +434,9 @@ function InvestScreen({ rec, onSubmit, onChangeJob }) {
   const [a, setA] = useState(() => Object.fromEntries(ALLOC.map((x) => [x.key, 0])));
   const used = ALLOC.reduce((s, x) => s + (a[x.key] || 0), 0);
   const diff = available - used, matched = diff === 0;
-  const set = (k, v) => setA((p) => ({ ...p, [k]: Math.min(available, Math.max(0, v)) }));
+  // 각 자산의 최대값 = 남은 금액 + 현재 그 자산에 배분된 금액 (초과 불가)
+  const maxFor = (k) => available - (used - (a[k] || 0));
+  const set = (k, v) => setA((prev) => ({ ...prev, [k]: Math.min(maxFor(k), Math.max(0, v)) }));
   return (
     <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 16, marginTop: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -444,37 +446,38 @@ function InvestScreen({ rec, onSubmit, onChangeJob }) {
       <div style={{ textAlign: "center", margin: "6px 0 10px" }}>
         <span style={{ color: C.sub, fontSize: 12 }}>배분할 총액 </span>
         <span style={{ fontFamily: "'Black Han Sans'", color: C.gold, fontSize: 20 }}>{fmt(available)}</span>
-      </div>
-      <div style={{ textAlign: "center", padding: "10px 12px", borderRadius: 12, marginBottom: 12, fontWeight: 700,
-        border: `2px solid ${matched ? C.green : C.red}`, background: matched ? "#e8f8f1" : "#fdeceb",
-        color: matched ? C.green : C.red, animation: diff < 0 ? "shake .35s" : "none" }}>
-        {diff < 0 && `⚠️ ${fmt(-diff)} 초과했습니다! 줄여주세요`}
-        {diff > 0 && `🔸 아직 ${fmt(diff)} 남았습니다 (전부 배분해야 진행돼요)`}
-        {matched && "✅ 딱 맞췄습니다! 진행할 수 있어요"}
+        <span style={{ color: diff > 0 ? C.red : C.green, fontSize: 13, fontWeight: 700, marginLeft: 10 }}>
+          {diff > 0 ? `(${fmt(diff)} 남음)` : "✅ 완료"}
+        </span>
       </div>
       <div style={{ display: "grid", gap: 10 }}>
-        {ALLOC.map((item) => (
-          <div key={item.key} style={{ background: C.panel2, borderRadius: 12, padding: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 20 }}>{item.emoji}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 900, color: item.color }}>{item.name}</div>
-                <div style={{ fontSize: 11, color: C.sub }}>{item.hint}</div>
+        {ALLOC.map((item) => {
+          const maxV = maxFor(item.key);
+          return (
+            <div key={item.key} style={{ background: C.panel2, borderRadius: 12, padding: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 900, color: item.color }}>{item.name}</div>
+                  <div style={{ fontSize: 11, color: C.sub }}>{item.hint}</div>
+                </div>
+                <div style={{ fontFamily: "'Black Han Sans'", color: C.gold, minWidth: 80, textAlign: "right" }}>{fmt(a[item.key])}</div>
               </div>
-              <div style={{ fontFamily: "'Black Han Sans'", color: C.gold, minWidth: 80, textAlign: "right" }}>{fmt(a[item.key])}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                <Stepper onClick={() => set(item.key, a[item.key] - 5)}>-5</Stepper>
+                <Stepper onClick={() => set(item.key, a[item.key] - 1)}>-1</Stepper>
+                <input type="range" min={0} max={maxV} value={a[item.key]}
+                  onChange={(e) => set(item.key, +e.target.value)}
+                  style={{ flex: 1, accentColor: item.color }} />
+                <Stepper onClick={() => set(item.key, a[item.key] + 1)}>+1</Stepper>
+                <Stepper onClick={() => set(item.key, a[item.key] + 5)}>+5</Stepper>
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-              <Stepper onClick={() => set(item.key, a[item.key] - 5)}>-5</Stepper>
-              <Stepper onClick={() => set(item.key, a[item.key] - 1)}>-1</Stepper>
-              <input type="range" min={0} max={available} value={a[item.key]} onChange={(e) => set(item.key, +e.target.value)} style={{ flex: 1, accentColor: item.color }} />
-              <Stepper onClick={() => set(item.key, a[item.key] + 1)}>+1</Stepper>
-              <Stepper onClick={() => set(item.key, a[item.key] + 5)}>+5</Stepper>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div style={{ marginTop: 14 }}>
-        <Btn fill full disabled={!matched} onClick={() => onSubmit(a)}>{matched ? "투자 확정 →" : "금액을 딱 맞춰주세요"}</Btn>
+        <Btn fill full disabled={!matched} onClick={() => onSubmit(a)}>{matched ? "투자 확정 →" : `아직 ${fmt(diff)} 남았어요`}</Btn>
       </div>
       {onChangeJob && !rec.jobChanged && (
         <div style={{ marginTop: 10, textAlign: "center" }}>
@@ -607,7 +610,7 @@ function NewsBanner({ event }) {
     <div style={{ marginTop: 12, borderRadius: 14, overflow: "hidden", border: `2px solid #ef4444`, animation: "slideDown .4s", boxShadow: "0 10px 30px #0008" }}>
       <div style={{ background: "linear-gradient(90deg,#b91c1c,#ef4444)", color: "#fff", padding: "7px 12px", display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ background: "#fff", color: "#b91c1c", fontFamily: "'Black Han Sans'", fontSize: 12, padding: "1px 7px", borderRadius: 4 }}>LIVE</span>
-        <span style={{ fontFamily: "'Black Han Sans'", letterSpacing: 1 }}>📺 머니뉴스 24</span>
+        <span style={{ fontFamily: "'Black Han Sans'", letterSpacing: 1 }}>📺 종암뉴스 24</span>
         <span style={{ marginLeft: "auto", fontSize: 12, opacity: 0.9 }}>속보 · {hh}:{mm}</span>
       </div>
       <div style={{ background: "linear-gradient(160deg,#1a1014,#15171f)", padding: 16 }}>
@@ -708,20 +711,33 @@ function AdminView({ onBack, room }) {
         <FinalRanking list={players} meId={null} onBack={onBack} />
       ) : (
       <div style={{ marginTop: 16 }}>
+        {/* 미완료 학생 경고 */}
+        {phase === "invest" && classPlayers.length > 0 && classPlayers.filter(p => !p.ready).length > 0 && (
+          <div style={{ background: "#fff8e1", border: `1px solid #f59e0b`, borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
+            <span style={{ fontWeight: 900, color: "#b45309" }}>⏳ 아직 투자 안 한 학생: </span>
+            <span style={{ color: "#92400e" }}>
+              {classPlayers.filter(p => !p.ready).map(p => p.name).join(", ")}
+            </span>
+          </div>
+        )}
         <SectionLabel>📊 실시간 순위 (총자산)</SectionLabel>
         {players.length === 0 ? <Empty>아직 참가자가 없어요. 학생들에게 '수업 참여'로 입장하라고 안내하세요.</Empty> : (
           <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
             {players.map((p, i) => {
               const net = netWorth(p), job = jobByName(p.job);
               const isReady = p.ready && (p.round || 1) === round && phase === "invest";
+              const notYet = !p.ready && (p.round || 1) === round && phase === "invest";
               return (
-                <div key={p.id} style={{ background: C.panel, border: `1px solid ${isReady ? C.green : C.line}`, borderRadius: 12, padding: 12 }}>
+                <div key={p.id} style={{ background: C.panel, border: `2px solid ${isReady ? C.green : notYet ? "#f59e0b" : C.line}`, borderRadius: 12, padding: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontFamily: "'Black Han Sans'", width: 28, color: i === 0 ? C.gold : C.sub, fontSize: 18 }}>{i === 0 ? "👑" : i + 1}</span>
                     <span style={{ fontSize: 22 }}>{job?.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 900 }}>{p.name} <span style={{ color: C.sub, fontSize: 12, fontWeight: 500 }}>{p.job} · {p.round || 1}월차</span>
-                        {isReady && <span style={{ marginLeft: 6 }}><Badge color={C.green}>완료</Badge></span>}</div>
+                      <div style={{ fontWeight: 900 }}>{p.name}
+                        <span style={{ color: C.sub, fontSize: 12, fontWeight: 500 }}> {p.job} · {p.round || 1}월차</span>
+                        {isReady && <span style={{ marginLeft: 6 }}><Badge color={C.green}>✅ 완료</Badge></span>}
+                        {notYet && <span style={{ marginLeft: 6 }}><Badge color="#f59e0b">⏳ 투자중</Badge></span>}
+                      </div>
                       <div style={{ height: 6, background: "#eceaf3", borderRadius: 6, marginTop: 6, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${(net / maxNet) * 100}%`, background: `linear-gradient(90deg,${C.goldDim},${C.gold})`, borderRadius: 6 }} />
                       </div>
@@ -731,8 +747,23 @@ function AdminView({ onBack, room }) {
                       {p.lastResult && <div style={{ fontSize: 12, color: p.lastResult.total >= 0 ? C.green : C.red }}>{p.lastResult.total >= 0 ? "▲" : "▼"} {fmt(Math.abs(p.lastResult.total))}</div>}
                     </div>
                   </div>
+                  {/* 자산 색상 바 */}
                   <div style={{ display: "flex", height: 8, borderRadius: 6, overflow: "hidden", marginTop: 10, background: "#eceaf3" }}>
                     {ASSETS.map((a) => { const v = p[a.key] || 0; return v > 0 ? <div key={a.key} style={{ width: `${(v / Math.max(1, net)) * 100}%`, background: a.color }} /> : null; })}
+                  </div>
+                  {/* 투자 내역 상세 */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", marginTop: 8 }}>
+                    {ALLOC.filter(a => a.key !== "parents").map(a => {
+                      const v = p[a.key] || 0;
+                      return v > 0 ? (
+                        <span key={a.key} style={{ fontSize: 12, color: C.sub }}>
+                          <span style={{ color: a.color }}>{a.emoji}</span> {a.name} <b style={{ color: C.text }}>{fmt(v)}</b>
+                        </span>
+                      ) : null;
+                    })}
+                    {(p.parents || 0) > 0 && (
+                      <span style={{ fontSize: 12, color: C.sub }}>🎁 효도 <b style={{ color: C.text }}>{fmt(p.parents)}</b></span>
+                    )}
                   </div>
                 </div>
               );
