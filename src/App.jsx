@@ -264,7 +264,7 @@ export default function App() {
       {!room ? <RoomSelect onPick={setRoom}/>
         : !mode ? <ModeSelect onPick={setMode} room={room} onChangeRoom={()=>{setRoom(null);setMode(null);}}/>
         : mode==="admin" ? <AdminView onBack={()=>setMode(null)} room={room}/>
-        : <PlayGame mode={mode} onBack={()=>setMode(null)} room={room}/>}
+        : <PlayGame onBack={()=>setMode(null)} room={room}/>}
     </div>
   );
 }
@@ -325,8 +325,7 @@ function ModeSelect({onPick,room,onChangeRoom}){
           <Btn color={C.sub} onClick={()=>onPick("admin")} full>🖥️ 다연쌤 화면</Btn>
         </div>
         <p style={{color:C.sub,fontSize:12,marginTop:22,lineHeight:1.6,maxWidth:320}}>
-          학생은 '수업 참여'로 입장하고, 선생님은 '다연쌤 화면'을 엽니다.<br/>
-          모두 투자를 마치면 다연쌤이 속보를 띄워 전원 동시에 결과가 나와요.
+          학생은 '수업 참여'로 입장하고,<br/>선생님은 '다연쌤 화면'을 엽니다.
         </p>
       </div>
     </Centered>
@@ -423,9 +422,8 @@ function LifeEventCard({lifeEvent,hasInsurance,onConfirm}){
   );
 }
 
-/* ===================== 게임 ===================== */
-function PlayGame({mode,onBack,room}){
-  const isClass=mode==="class";
+/* ===================== 게임 (수업 모드 전용) ===================== */
+function PlayGame({onBack,room}){
   const GKEY=mkGKey(room);
   const pkey=(id)=>mkPKey(room,id);
   const ppfx=mkPPfx(room);
@@ -435,7 +433,6 @@ function PlayGame({mode,onBack,room}){
   const [rec,setRec]=useState(null);
   const [round,setRound]=useState(1);
   const [event,setEvent]=useState(null);
-  const [phase,setPhase]=useState("invest");
   const [finalList,setFinalList]=useState([]);
   const [pendingLifeEv,setPendingLifeEv]=useState(null);
   const idRef=useRef(uid());
@@ -451,7 +448,6 @@ function PlayGame({mode,onBack,room}){
     const living=getLiving(job,decade);
     const investable=Math.max(0,sal-living);
     const nr={...r,checking:investable,lastSalaryAmt:sal,lastLivingAmt:living,lastSalaryRound:rnd,ready:false,lastResult:null};
-    // 연대 변경 시 인생 이벤트
     let lifeEv=null;
     const prevDecade=getRoundMeta(Math.max(1,rnd-1)).decade;
     if (decade!==prevDecade&&LIFE_EVENTS[decade]) {
@@ -467,12 +463,11 @@ function PlayGame({mode,onBack,room}){
   };
 
   useEffect(()=>{
-    if (!isClass) return;
     let active=true;
     const poll=async()=>{
       const g=(await sGet(GKEY))||{round:1,phase:"invest"};
       if (!active) return;
-      setRound(g.round); setPhase(g.phase);
+      setRound(g.round);
       if (g.phase==="end"){
         const keys=await sList(ppfx);
         const list=(await Promise.all(keys.map(k=>sGet(k)))).filter(Boolean).sort((a,b)=>netWorth(b)-netWorth(a));
@@ -489,10 +484,10 @@ function PlayGame({mode,onBack,room}){
     };
     poll(); const iv=setInterval(poll,1500);
     return()=>{active=false;clearInterval(iv);};
-  },[isClass]);
+  },[]);
 
   const startJob=(job)=>{
-    const rnd=isClass?roundRef.current:1;
+    const rnd=roundRef.current;
     const decade=getRoundMeta(rnd).decade;
     const sal=rollSalary(job,decade);
     const living=getLiving(job,decade);
@@ -533,9 +528,9 @@ function PlayGame({mode,onBack,room}){
     r.savings+=(alloc.savings||0); r.luxury+=(alloc.luxury||0);
     r.insurance=(r.insurance||0)+(alloc.insurance||0);
     r.parents+=(alloc.parents||0); r.checking=(alloc.checking||0);
-    if (isClass) r.ready=true;
+    r.ready=true;
     setRec(r); recRef.current=r;
-    if (isClass) write(r);
+    write(r);
     setStep("waiting");
   };
 
@@ -544,16 +539,10 @@ function PlayGame({mode,onBack,room}){
     const res=applyNews(r,event,round);
     r.lastResult=res;
     setRec(r); recRef.current=r;
-    if (isClass) write(r);
+    write(r);
   };
 
-  const nextSolo=()=>{
-    const nextRnd=round+1;
-    if (nextRnd>TOTAL_ROUNDS){setFinalList([rec]);setStep("end");playSound("fanfare");return;}
-    beginRound(rec,nextRnd);
-  };
-
-  if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack} sub={isClass?"수업 참여":"혼자 연습"}/>;
+  if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack}/>;
   if (step==="job") return <JobPick name={name} onPickJob={startJob} onBack={()=>setStep("name")}/>;
   if (step==="rejob") return <JobPick name={name} onPickJob={changeJob} onBack={()=>setStep("invest")} rejob/>;
   if (step==="end") return <FinalRanking list={finalList} meId={idRef.current} onBack={onBack}/>;
@@ -572,7 +561,7 @@ function PlayGame({mode,onBack,room}){
           <span style={{fontSize:26}}>{job?.emoji}</span>
           <div>
             <div style={{fontWeight:900}}>{name}</div>
-            <div style={{color:C.sub,fontSize:12}}>{rec.job} · {meta.label} {isClass&&<Badge color="#60a5fa">수업</Badge>}</div>
+            <div style={{color:C.sub,fontSize:12}}>{rec.job} · {meta.label} <Badge color="#60a5fa">수업</Badge></div>
           </div>
         </div>
         <div style={{textAlign:"right"}}>
@@ -586,14 +575,7 @@ function PlayGame({mode,onBack,room}){
         <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:26,marginTop:14,textAlign:"center"}}>
           <div style={{fontSize:40,animation:"blink 1.6s infinite"}}>📡</div>
           <div style={{fontWeight:900,marginTop:8}}>투자 완료! 속보 대기 중…</div>
-          {isClass
-            ? <div style={{color:C.sub,fontSize:13,marginTop:6}}>모두 투자를 마치면 다연쌤이 속보를 띄웁니다.</div>
-            : <div style={{marginTop:16}}>
-                <Btn fill color={C.red} onClick={()=>{
-                  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
-                  setEvent(ev); setStep("news"); playSound("news");
-                }}>📰 속보 띄우기</Btn>
-              </div>}
+          <div style={{color:C.sub,fontSize:13,marginTop:6}}>모두 투자를 마치면 다연쌤이 속보를 띄웁니다.</div>
         </div>
       )}
       {step==="news"&&(
@@ -605,7 +587,7 @@ function PlayGame({mode,onBack,room}){
               <Btn fill onClick={reveal}>💥 투자 결과 확인</Btn>
             </div>
           ):(
-            <ResultBreakdown result={rec.lastResult} onNext={isClass?null:nextSolo} isLast={round>=TOTAL_ROUNDS}/>
+            <ResultBreakdown result={rec.lastResult} onNext={null} isLast={round>=TOTAL_ROUNDS}/>
           )}
         </>
       )}
@@ -616,14 +598,13 @@ function PlayGame({mode,onBack,room}){
   );
 }
 
-function JoinScreen({name,setName,onJoin,onBack,sub}){
+function JoinScreen({name,setName,onJoin,onBack}){
   return(
     <Centered>
       <div style={{textAlign:"center",width:300,animation:"pop .3s",position:"relative"}}>
         <span style={{cursor:"pointer",color:C.sub,position:"absolute",left:-4,top:-8}} onClick={onBack}>←</span>
         <div style={{fontSize:44}}>🙋</div>
         <Title size={28}>이름을 입력하세요</Title>
-        {sub&&<div style={{color:C.sub,fontSize:12,marginTop:4}}>{sub}</div>}
         <input value={name} onChange={e=>setName(e.target.value)} placeholder="닉네임"
           onKeyDown={e=>e.key==="Enter"&&name.trim()&&onJoin()}
           style={{marginTop:16,width:"100%",padding:14,borderRadius:12,border:`2px solid ${C.line}`,background:C.panel,color:C.text,fontSize:16,textAlign:"center",outline:"none"}}/>
