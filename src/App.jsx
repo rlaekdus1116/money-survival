@@ -346,6 +346,14 @@ const Badge=({children,color=C.gold})=><span style={{border:`1px solid ${color}`
 const Empty=({children})=><div style={{background:C.panel,border:`1px dashed ${C.line}`,borderRadius:14,padding:24,textAlign:"center",color:C.sub,marginTop:8}}>{children}</div>;
 
 function ModeSelect({onPick,room,onChangeRoom}){
+  const [showPw,setShowPw]=useState(false);
+  const [pw,setPw]=useState("");
+  const [shake,setShake]=useState(false);
+  const ADMIN_PW="메롱";
+  const tryAdmin=()=>{
+    if(pw===ADMIN_PW){onPick("admin");}
+    else{setShake(true);setPw("");setTimeout(()=>setShake(false),500);}
+  };
   return(
     <Centered>
       <div style={{textAlign:"center",animation:"pop .4s"}}>
@@ -358,12 +366,37 @@ function ModeSelect({onPick,room,onChangeRoom}){
         <p style={{color:C.sub,marginTop:8}}>내 월급, 어디에 넣을까? 선택이 미래를 바꾼다!</p>
         <div style={{display:"grid",gap:12,marginTop:30,width:280,marginInline:"auto"}}>
           <Btn fill onClick={()=>onPick("class")} full>🎓 수업 참여 (학생)</Btn>
-          <Btn color={C.sub} onClick={()=>onPick("admin")} full>🖥️ 다연쌤 화면</Btn>
+          <Btn color={C.sub} onClick={()=>setShowPw(true)} full>🖥️ 다연쌤 화면</Btn>
         </div>
         <p style={{color:C.sub,fontSize:12,marginTop:22,lineHeight:1.6,maxWidth:320}}>
           학생은 '수업 참여'로 입장하고,<br/>선생님은 '다연쌤 화면'을 엽니다.
         </p>
       </div>
+      {showPw&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={()=>{setShowPw(false);setPw("");}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.panel,border:`2px solid ${C.gold}`,borderRadius:20,padding:"32px 28px",width:300,textAlign:"center",
+            animation:shake?"shake .4s":"pop .3s"}}>
+            <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
+            <div style={{fontSize:44}}>🔐</div>
+            <div style={{fontFamily:"'Black Han Sans'",fontSize:20,marginTop:8,color:C.gold}}>선생님 전용</div>
+            <p style={{color:C.sub,fontSize:13,marginTop:6}}>비밀번호를 입력하세요</p>
+            <input
+              autoFocus
+              type="text"
+              value={pw}
+              onChange={e=>setPw(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&tryAdmin()}
+              placeholder="비밀번호"
+              style={{marginTop:14,width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.line}`,
+                background:C.bg,color:C.text,fontSize:16,textAlign:"center",boxSizing:"border-box",outline:"none"}}
+            />
+            <div style={{display:"flex",gap:8,marginTop:14}}>
+              <Btn color={C.sub} onClick={()=>{setShowPw(false);setPw("");}} full>취소</Btn>
+              <Btn fill onClick={tryAdmin} full>확인</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </Centered>
   );
 }
