@@ -773,6 +773,7 @@ function JoinScreen({name,setName,onJoin,onBack}){
 function JobPick({name,onPickJob,onBack,rejob}){
   const [deck]=useState(()=>[...JOBS].sort(()=>Math.random()-.5));
   const [picked,setPicked]=useState(null);
+  const [rerollUsed,setRerollUsed]=useState(false);
   return(
     <div style={{maxWidth:520,margin:"0 auto",padding:16}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -808,7 +809,7 @@ function JobPick({name,onPickJob,onBack,rejob}){
             <div style={{color:C.sub,fontSize:12}}>생활비 {fmt(picked.living[20])} 자동 차감</div>
           </div>
           <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:20}}>
-            <Btn color={C.sub} onClick={()=>setPicked(null)}>다시 고르기</Btn>
+            {!rerollUsed && <Btn color={C.sub} onClick={()=>{setPicked(null);setRerollUsed(true);}}>다시 고르기 (1회)</Btn>}
             <Btn fill onClick={()=>onPickJob(picked)}>{rejob?"이 직업으로 이직! →":"이 직업으로 시작! →"}</Btn>
           </div>
         </div>
