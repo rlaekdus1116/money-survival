@@ -200,7 +200,7 @@ const LIFE_EVENTS = {
 
 /* ====== 자산 / 배분 ====== */
 const ASSETS = [
-  {key:"bitcoin",name:"비트코인",color:"#f7931a"},
+  {key:"bitcoin",name:"코인",color:"#f7931a"},
   {key:"stock",name:"주식",color:"#34d399"},
   {key:"savings",name:"적금",color:"#60a5fa"},
   {key:"realestate",name:"부동산",color:"#fb923c"},
@@ -210,8 +210,8 @@ const ASSETS = [
 const assetName = (k) => k==="parents"?"부모님 효도":k==="insurance"?"보험":ASSETS.find(a=>a.key===k)?.name||k;
 
 const ALLOC = [
-  {key:"bitcoin",name:"비트코인",emoji:"₿",color:"#f7931a",hint:"고위험 고수익"},
-  {key:"stock",name:"주식",emoji:"📈",color:"#34d399",hint:"중위험"},
+  {key:"bitcoin",name:"코인",emoji:"🪙",color:"#f7931a",hint:"고위험 고수익 · 상장폐지 위험 있음"},
+  {key:"stock",name:"주식",emoji:"📈",color:"#34d399",hint:"중위험 · 상장폐지 가능"},
   {key:"savings",name:"적금",emoji:"🏦",color:"#60a5fa",hint:"안전·소폭이익"},
   {key:"realestate",name:"부동산",emoji:"🏠",color:"#fb923c",hint:"집값 오르면 큰 수익 · 경기침체엔 하락"},
   {key:"luxury",name:"명품",emoji:"👜",color:"#c084fc",hint:"감가 위험"},
@@ -222,52 +222,66 @@ const ALLOC = [
 
 const CAT = {경제:"#e8c14d",국제:"#60a5fa",IT:"#34d399",부동산:"#fb923c",사회:"#c084fc"};
 
-/* ====== 속보 이벤트 (쉬운 버전) ====== */
+/* ====== 속보 이벤트 ====== */
 const EVENTS = [
-  {id:"btc_etf",cat:"경제",icon:"🚀",title:"코인 열풍! 전 세계가 비트코인을 사들이고 있어요",
-    body:"대형 투자회사들이 앞다투어 비트코인을 사고 있어요. '디지털 금'이라는 말이 나올 정도예요.",
-    ticker:"비트코인 +60% · 역대급 거래량 · 투자 열기 최고조",
-    returns:{bitcoin:0.6,stock:0.05,savings:0.004}},
-  {id:"ai_boom",cat:"IT",icon:"🤖",title:"AI 열풍! 기술 관련 주식이 폭등하고 있어요",
-    body:"인공지능 기술이 발전하면서 관련 기업들의 주가가 크게 올랐어요.",
-    ticker:"기술주 +42% · AI 열풍 · 관련 기업 실적 대박",
-    returns:{stock:0.42,bitcoin:0.06,savings:0.004}},
-  {id:"luxury_resell",cat:"사회",icon:"👜",title:"한정판 가방, 사자마자 두 배! 명품 오픈런 대란",
-    body:"인기 명품 브랜드 가방이 품귀 현상을 빚으면서 중고 거래 가격이 2배가 됐어요.",
-    ticker:"명품 +28% · 오픈런 대란 · 리셀 시장 폭주",
-    returns:{luxury:0.28,stock:0.03,savings:0.004}},
-  {id:"savings_gift",cat:"사회",icon:"🏦",title:"정부가 적금 이자를 두 배로 올려준다고?!",
-    body:"청년 자산 형성을 돕겠다며 정부가 적금 우대 금리를 발표했어요.",
-    ticker:"적금 우대금리 지급 · 가입 문의 폭주",
-    returns:{savings:0.04}},
-  {id:"rate_up",cat:"경제",icon:"📉",title:"정부가 이자율을 올렸어요 — 코인·주식 동시 하락",
-    body:"이자율이 오르면 위험한 투자에서 돈이 빠져나가요. 비트코인이 직격탄을 맞았어요.",
-    ticker:"비트코인 -45% · 주식 약세 · 적금 금리는 상승",
-    returns:{bitcoin:-0.45,stock:-0.12,savings:0.012,luxury:-0.03}},
-  {id:"inflation",cat:"경제",icon:"🔥",title:"물가가 너무 올랐어요! 통장에 돈만 있으면 손해예요",
-    body:"물가가 오르면 같은 돈으로 살 수 있는 게 줄어들어요. 현금은 가만 있어도 손해예요.",
-    ticker:"물가 6%대 · 현금 가치 하락 · 실물자산 주목",
-    returns:{bitcoin:0.18,stock:-0.04,luxury:0.06,savings:-0.005,checking:-0.05}},
-  {id:"crisis",cat:"국제",icon:"🌪️",title:"전 세계 경제가 흔들려요! 모든 자산이 동시에 떨어지고 있어요",
-    body:"큰 경제 위기가 오면 코인도, 주식도, 명품도 다 같이 떨어져요. 현금만 안전해요.",
-    ticker:"주식 -38% · 비트코인 -35% · 명품 급랭",
-    returns:{bitcoin:-0.35,stock:-0.38,savings:0.0,luxury:-0.18,realestate:-0.15}},
-  {id:"filial",cat:"사회",icon:"🎁",title:"부모님이 목돈으로 화답! 효도가 재테크예요",
-    body:"꾸준히 용돈을 드린 자녀들에게 부모님이 목돈을 돌려주는 사례가 화제예요.",
-    ticker:"효도 누적액의 80% 보답 · 따뜻한 미담",
-    returns:{savings:0.004},parentsReturn:0.8},
-  {id:"realestate",cat:"부동산",icon:"🏠",title:"집값이 다시 오르고 있어요!",
-    body:"도심 아파트를 중심으로 부동산 가격이 상승세예요. 부동산에 투자한 사람은 큰 수익이 났어요!",
-    ticker:"부동산 +30% · 전세 품귀 · 아파트 매수 문의 급증",
-    returns:{realestate:0.3,bitcoin:0.05}},
-  {id:"realestate_drop",cat:"부동산",icon:"🏚️",title:"집값이 떨어지고 있어요!",
-    body:"금리 인상과 경기 둔화로 아파트 값이 내려가고 있어요. 부동산 투자자는 주의하세요.",
-    ticker:"부동산 -20% · 거래 절벽 · 역전세 우려",
-    returns:{realestate:-0.2,stock:-0.05}},
-  {id:"recession",cat:"경제",icon:"😰",title:"경기가 나빠지고 있어요 — 주머니가 얇아지는 중",
-    body:"경기가 나빠지면 회사 실적이 떨어지고 주가도 내려가요.",
-    ticker:"주식 -20% · 소비 위축 · 경기 둔화",
-    returns:{stock:-0.2,bitcoin:-0.1,luxury:-0.08,realestate:-0.1,savings:0.005}},
+  // 📈 호재
+  {id:"coin_moon",cat:"IT",icon:"🚀",title:"🚨속보🚨 코인 대폭발! '이번엔 다르다'는 말이 현실이 됐어요",
+    body:"유명 연예인이 코인 광고를 찍으면서 갑자기 전국민이 코인을 샀어요. 지금 안 사면 바보?",
+    ticker:"코인 +70% · 전국민 코인 매수 · 거래소 서버 터짐",
+    returns:{bitcoin:0.7,stock:0.05}},
+  {id:"ai_boom",cat:"IT",icon:"🤖",title:"AI가 내 일자리를 뺏는 대신 주가를 올려줬어요",
+    body:"AI 기업 실적이 폭발하면서 관련 주식이 하늘을 찌르고 있어요. 주주들 오늘 다 부자예요.",
+    ticker:"기술주 +45% · AI 수혜주 줄줄이 신고가",
+    returns:{stock:0.45,bitcoin:0.08}},
+  {id:"luxury_resell",cat:"사회",icon:"👜",title:"한정판 가방 줄 서다가 뛰어서 갔는데 두 배 됐어요",
+    body:"오픈런에 실패한 사람들이 웃돈 주고 사면서 명품 중고가가 폭등했어요.",
+    ticker:"명품 +35% · 오픈런 새벽 4시 · 리셀러 대박",
+    returns:{luxury:0.35,stock:0.03}},
+  {id:"realestate_boom",cat:"부동산",icon:"🏠",title:"강남 아파트가 또 올랐어요! '집 팔았어야 했는데'",
+    body:"정부 규제에도 불구하고 집값이 다시 폭등했어요. 부동산 가진 사람들 오늘 대박났어요.",
+    ticker:"부동산 +40% · 아파트 신고가 · 전세 품귀",
+    returns:{realestate:0.4,stock:0.05}},
+  {id:"savings_gift",cat:"경제",icon:"🏦",title:"정부가 적금 이자를 두 배로 올렸어요. 진짜로요.",
+    body:"청년 적금에 정부 지원금이 더해지면서 사실상 이자율 2배가 됐어요. 적금 가입 폭발.",
+    ticker:"적금 +8% 특별금리 · 가입 폭주 · 은행 앱 다운",
+    returns:{savings:0.08}},
+  {id:"filial",cat:"사회",icon:"🎁",title:"용돈 드렸더니 부모님이 훨씬 더 많이 돌려주셨어요",
+    body:"용돈을 꾸준히 드린 자녀들에게 부모님이 목돈으로 화답하셨어요. 효도는 투자예요.",
+    ticker:"부모님 감동 · 효도 수익률 80% · 효자효녀 대박",
+    returns:{savings:0.002},parentsReturn:0.8},
+  {id:"inheritance",cat:"사회",icon:"🏰",title:"부모님이 갑자기 유산을 주셨어요 (예상 밖 대박)",
+    body:"세상을 떠나신 조부모님이 재산을 남겨주셨어요. 예상치 못한 횡재가 생겼어요.",
+    ticker:"유산 상속 · 뜻밖의 목돈 · 가족愛 확인",
+    returns:{},bonusChecking:30},
+  // 📉 악재
+  {id:"coin_delist",cat:"IT",icon:"💀",title:"🚨충격🚨 보유하신 코인이 상장폐지 됐습니다",
+    body:"'믿었던' 코인이 사기로 밝혀져 거래소에서 쫓겨났어요. 투자금 99% 날아갔어요. 코인은 역시 도박?",
+    ticker:"코인 상장폐지 -90% · 개발자 잠적 · 투자자 패닉",
+    returns:{bitcoin:-0.9}},
+  {id:"stock_delist",cat:"경제",icon:"📛",title:"🚨속보🚨 대형 기업이 분식회계로 상장폐지 됐어요",
+    body:"믿었던 대기업이 수년간 장부를 속여왔다는 게 밝혀졌어요. 주식이 휴지조각이 됐어요.",
+    ticker:"주식 상장폐지 -80% · 경영진 구속 · 투자자 집단소송",
+    returns:{stock:-0.8,bitcoin:-0.1}},
+  {id:"rate_up",cat:"경제",icon:"📉",title:"금리 인상! 코인·주식 동시에 털렸어요",
+    body:"금리가 오르면 위험한 투자에서 돈이 빠져요. 코인과 주식이 한꺼번에 떨어졌어요.",
+    ticker:"코인 -45% · 주식 약세 · '현금이 왕' 재확인",
+    returns:{bitcoin:-0.45,stock:-0.15,luxury:-0.05}},
+  {id:"realestate_drop",cat:"부동산",icon:"🏚️",title:"집값이 반토막! 영끌족 눈물의 매도 행렬",
+    body:"금리 폭등으로 대출 이자가 감당 안 되자 집을 급매로 내놓는 사람들이 쏟아졌어요.",
+    ticker:"부동산 -30% · 영끌 공포 · 깡통전세 속출",
+    returns:{realestate:-0.3,stock:-0.05}},
+  {id:"crisis",cat:"국제",icon:"🌪️",title:"세계 경제 폭망! 뭘 갖고 있어도 다 떨어졌어요",
+    body:"미국 은행 파산 + 전쟁 확산 = 전 세계 자산 동시 폭락. 현금만 살아남았어요.",
+    ticker:"코인 -40% · 주식 -35% · 명품 -20% · 부동산 -20%",
+    returns:{bitcoin:-0.4,stock:-0.35,luxury:-0.2,realestate:-0.2}},
+  {id:"inflation",cat:"경제",icon:"🔥",title:"물가 폭등! 통장에 현금만 있으면 사실상 손해예요",
+    body:"편의점 삼각김밥이 2천원이 됐어요. 현금 가치가 녹아내리고 있어요.",
+    ticker:"물가 +8% · 통장 돈 녹는 중 · 실물자산 주목",
+    returns:{bitcoin:0.15,luxury:0.08,savings:-0.02,checking:-0.06}},
+  {id:"recession",cat:"경제",icon:"😰",title:"경기침체 공식 선언! 주머니가 다 같이 얇아지는 중",
+    body:"경기가 나빠지면서 기업 실적도 집값도 명품도 동반 하락하고 있어요.",
+    ticker:"주식 -22% · 부동산 -10% · 명품 -12%",
+    returns:{stock:-0.22,bitcoin:-0.08,luxury:-0.12,realestate:-0.1}},
 ];
 const eventById = (id) => EVENTS.find(e => e.id === id);
 
@@ -315,6 +329,10 @@ function applyNews(rec, event, round) {
     rec.checking+=bonus; total+=bonus;
     lines.push({key:"parents",before:0,after:bonus,diff:bonus,rate:event.parentsReturn,isParents:true});
   }
+  if (event.bonusChecking) {
+    rec.checking=(rec.checking||0)+event.bonusChecking; total+=event.bonusChecking;
+    lines.push({key:"checking",before:rec.checking-event.bonusChecking,after:rec.checking,diff:event.bonusChecking,rate:0,isBonus:true});
+  }
   return {round,eventId:event.id,title:event.title,total,lines};
 }
 
@@ -324,12 +342,9 @@ function applyLifeEvent(rec, ev) {
   let cost = ev.cost;
   if (ev.insurance && hasIns) cost = Math.ceil(cost/2);
   if (cost > 0) {
-    const fromCheck = Math.min(rec.checking||0, cost);
-    rec.checking = (rec.checking||0)-fromCheck;
-    const rem = cost-fromCheck;
-    if (rem>0) rec.savings = Math.max(0,(rec.savings||0)-rem);
+    rec.checking = Math.max(0, (rec.checking||0) - cost);
   } else {
-    rec.checking = (rec.checking||0)+Math.abs(cost);
+    rec.checking = (rec.checking||0) + Math.abs(cost);
   }
 }
 
@@ -646,8 +661,12 @@ function PlayGame({onBack,room}){
     const decade=getRoundMeta(rnd).decade;
     const sal=rollSalary(job,decade);
     const living=getLiving(job,decade);
-    const investable=Math.max(0,sal-living);
-    const nr={...r,checking:investable,lastSalaryAmt:sal,lastLivingAmt:living,lastSalaryRound:rnd,ready:false,lastResult:null};
+    const newMoney=Math.max(0,sal-living);
+    // 이전 자산 전체를 다시 배분 가능 (보험·부모님 용돈 제외)
+    const prevAssets=(r.bitcoin||0)+(r.stock||0)+(r.savings||0)+(r.realestate||0)+(r.luxury||0)+(r.checking||0);
+    const pool=prevAssets+newMoney;
+    const nr={...r,bitcoin:0,stock:0,savings:0,realestate:0,luxury:0,checking:pool,
+      lastSalaryAmt:sal,lastLivingAmt:living,lastPrevAssets:prevAssets,lastNewMoney:newMoney,lastSalaryRound:rnd,ready:false,lastResult:null};
     let lifeEv=null;
     const prevDecade=getRoundMeta(Math.max(1,rnd-1)).decade;
     const isNewDecade=decade!==prevDecade&&rnd>1;
@@ -688,8 +707,8 @@ function PlayGame({onBack,room}){
       }
       const r=recRef.current;
       if (!r) return;
-      if (r.lifeChange&&!r.lifeChangeAck&&stepRef.current!=="lifeChange") {
-        setPendingLifeChange(r.lifeChange);
+      if (g.lifeChange?.active&&!r.lifeChangeResponded&&stepRef.current!=="lifeChange") {
+        setPendingLifeChange(g.lifeChange);
         setStep("lifeChange");
       } else if (g.phase==="invest"&&(r.lastSalaryRound||0)<g.round) {
         beginRound(r,g.round);
@@ -708,8 +727,8 @@ function PlayGame({onBack,room}){
     const sal=rollSalary(job,decade);
     const living=getLiving(job,decade);
     const investable=Math.max(0,sal-living);
-    const r={id:idRef.current,name,job:job.name,bitcoin:0,stock:0,savings:0,luxury:0,checking:investable,
-      insurance:0,parents:0,lastSalaryAmt:sal,lastLivingAmt:living,lastSalaryRound:rnd,ready:false,lastResult:null,jobChanged:false};
+    const r={id:idRef.current,name,job:job.name,bitcoin:0,stock:0,savings:0,realestate:0,luxury:0,checking:investable,
+      insurance:0,parents:0,lastSalaryAmt:sal,lastLivingAmt:living,lastPrevAssets:0,lastNewMoney:investable,lastSalaryRound:rnd,ready:false,lastResult:null,jobChanged:false};
     setRec(r); recRef.current=r;
     setPendingLifeEv(null);
     write(r,rnd);
@@ -725,15 +744,16 @@ function PlayGame({onBack,room}){
     setStep("jobchanged");
   };
 
-  const confirmLifeChange=()=>{
-    const lc=pendingLifeChange;
-    const r={...recRef.current, job:lc.newJob, lifeChangeAck:true};
+  const respondLifeChange=(answer)=>{
+    const r={...recRef.current, lifeChangeResponse:answer, lifeChangeResponded:true};
     setRec(r); recRef.current=r; write(r);
     setPendingLifeChange(null);
-    // 이미 현재 라운드 진행중이면 bill로, 아니면 waiting으로
+    // 현재 라운드 진행 상태 복귀
     const g_round=roundRef.current;
-    if ((r.lastSalaryRound||0)>=g_round) setStep("waiting");
-    else setStep("bill");
+    if (stepRef.current==="lifeChange"){
+      if ((r.lastSalaryRound||0)>=g_round) setStep("waiting");
+      else setStep("bill");
+    }
   };
 
   const confirmBill=()=>{
@@ -752,10 +772,10 @@ function PlayGame({onBack,room}){
   const confirmInvest=(alloc)=>{
     if (ALLOC.reduce((s,a)=>s+(alloc[a.key]||0),0)!==rec.checking) return;
     const r={...rec};
-    r.bitcoin+=(alloc.bitcoin||0); r.stock+=(alloc.stock||0);
-    r.savings+=(alloc.savings||0); r.realestate=(r.realestate||0)+(alloc.realestate||0);
-    r.luxury+=(alloc.luxury||0); r.insurance=(r.insurance||0)+(alloc.insurance||0);
-    r.parents+=(alloc.parents||0); r.checking=(alloc.checking||0);
+    r.bitcoin=(alloc.bitcoin||0); r.stock=(alloc.stock||0);
+    r.savings=(alloc.savings||0); r.realestate=(alloc.realestate||0);
+    r.luxury=(alloc.luxury||0); r.insurance=(r.insurance||0)+(alloc.insurance||0);
+    r.parents=(r.parents||0)+(alloc.parents||0); r.checking=(alloc.checking||0);
     r.ready=true;
     setRec(r); recRef.current=r;
     write(r);
@@ -773,7 +793,7 @@ function PlayGame({onBack,room}){
   if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack}/>;
   if (step==="job") return <JobPick name={name} onPickJob={startJob} onBack={()=>setStep("name")}/>;
   if (step==="rejob") return <JobPick name={name} onPickJob={changeJob} onBack={()=>setStep("invest")} rejob/>;
-  if (step==="lifeChange"&&pendingLifeChange) return <LifeChangeScreen lc={pendingLifeChange} name={name} onConfirm={confirmLifeChange}/>;
+  if (step==="lifeChange"&&pendingLifeChange) return <LifeChangeScreen name={name} onAnswer={respondLifeChange}/>;
   if (step==="ageTransition"&&ageInfo) return <AgeTransitionScreen info={ageInfo} onContinue={()=>setStep(ageInfo.rankNext?"ranking":"bill")}/>;
   if (step==="ranking") return <MidRankingScreen room={room} round={round} onContinue={()=>setStep("bill")}/>;
   if (step==="jobchanged") {
@@ -911,7 +931,7 @@ function JobPick({name,onPickJob,onBack,rejob}){
   );
 }
 
-const INVEST_TIME = 45;
+const INVEST_TIME = 20;
 function InvestScreen({rec,name,onSubmit,onChangeJob}){
   const available=rec.checking;
   const [a,setA]=useState(()=>Object.fromEntries(ALLOC.map(x=>[x.key,0])));
@@ -939,7 +959,7 @@ function InvestScreen({rec,name,onSubmit,onChangeJob}){
           doSubmit({...cur, checking:(cur.checking||0)+rem});
           return 0;
         }
-        if (prev===4) playSound("siren");
+        if (prev<=4&&prev>1) playSound("siren");
         return prev-1;
       });
     },1000);
@@ -956,41 +976,40 @@ function InvestScreen({rec,name,onSubmit,onChangeJob}){
         {available>0&&(
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:12,color:C.sub}}>남은 시간</span>
-            <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:urgent?"#ef4444":timeLeft<=10?"#f59e0b":C.gold,
-              animation:urgent?"blink .6s infinite":"none"}}>{timeLeft}초</span>
+            <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:"#ef4444",
+              animation:timeLeft<=10?"blink .6s infinite":"none"}}>{timeLeft}초</span>
           </div>
         )}
       </div>
       {urgent&&<div style={{background:"#fef2f2",border:`1px solid #ef4444`,borderRadius:8,padding:"6px 12px",marginBottom:10,color:"#ef4444",fontWeight:700,fontSize:13,textAlign:"center",animation:"blink .6s infinite"}}>⚠️ 시간이 얼마 없어요! 미배분 금액은 입출금통장으로 자동 이동돼요!</div>}
 
-      {/* 누적 총자산 요약 */}
-      <div style={{background:"linear-gradient(90deg,#fff8e8,#fdf4ff)",border:`1px solid ${C.gold}`,borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-        <div style={{fontSize:12,color:C.sub,marginBottom:4}}>💰 지금까지 모은 총자산</div>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
-          <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:C.gold}}>{fmt(totalNet)}</span>
-          {ALLOC.filter(it=>it.key!=="insurance"&&it.key!=="parents").map(it=>{
-            const v=rec[it.key]||0;
-            return v>0?(
-              <span key={it.key} style={{fontSize:12,color:C.sub}}>
-                <span style={{color:it.color}}>{it.emoji}</span> {fmt(v)}
-              </span>
-            ):null;
-          })}
-          {(rec.insurance||0)>0&&<span style={{fontSize:12,color:C.sub}}>🛡️ {fmt(rec.insurance)}</span>}
-          {(rec.parents||0)>0&&<span style={{fontSize:12,color:C.sub}}>🎁 {fmt(rec.parents)}</span>}
+      {/* 투자 가능 금액 분리 표시 */}
+      <div style={{background:"linear-gradient(90deg,#fff8e8,#fdf4ff)",border:`1px solid ${C.gold}`,borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{fontSize:12,color:C.sub}}>💰 이번 턴 투자 가능 금액</div>
+          <span style={{color:diff>0?C.red:C.green,fontSize:12,fontWeight:700}}>
+            {diff>0?`${fmt(diff)} 남음`:"✅ 배분 완료"}
+          </span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+          <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px"}}>
+            <div style={{fontSize:11,color:C.sub}}>💵 이번 달 월급 (생활비 제외)</div>
+            <div style={{fontFamily:"'Black Han Sans'",fontSize:16,color:C.green,marginTop:2}}>{fmt(rec.lastNewMoney||0)}</div>
+          </div>
+          <div style={{background:"#eff6ff",borderRadius:8,padding:"8px 10px"}}>
+            <div style={{fontSize:11,color:C.sub}}>📦 이전 자산</div>
+            <div style={{fontFamily:"'Black Han Sans'",fontSize:16,color:"#3b82f6",marginTop:2}}>{fmt(rec.lastPrevAssets||0)}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"baseline",gap:8,borderTop:`1px dashed ${C.line}`,paddingTop:8}}>
+          <span style={{fontSize:12,color:C.sub}}>합계</span>
+          <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:C.gold}}>{fmt(available)}</span>
+          {(rec.insurance||0)>0&&<span style={{fontSize:12,color:C.sub}}>🛡️ 보험 {fmt(rec.insurance)}</span>}
+          {(rec.parents||0)>0&&<span style={{fontSize:12,color:C.sub}}>🎁 효도 {fmt(rec.parents)}</span>}
         </div>
       </div>
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-        <SectionLabel>💸 이번 달 투자금 배분</SectionLabel>
-        <span style={{fontSize:12,color:C.sub}}>배분 가능 {fmt(available)}</span>
-      </div>
-      <div style={{textAlign:"center",margin:"6px 0 10px"}}>
-        <span style={{fontFamily:"'Black Han Sans'",color:C.gold,fontSize:20}}>{fmt(available)}</span>
-        <span style={{color:diff>0?C.red:C.green,fontSize:13,fontWeight:700,marginLeft:10}}>
-          {diff>0?`(${fmt(diff)} 남음)`:"✅ 완료"}
-        </span>
-      </div>
+      <SectionLabel>💸 자산 배분 (이전 투자도 옮길 수 있어요!)</SectionLabel>
 
       <div style={{display:"grid",gap:10}}>
         {ALLOC.map(item=>{
@@ -1029,7 +1048,10 @@ function InvestScreen({rec,name,onSubmit,onChangeJob}){
       </div>
 
       <div style={{marginTop:14}}>
-        <Btn fill full disabled={!matched||submitted} onClick={()=>doSubmit(a)}>{matched?"투자 확정 →":`아직 ${fmt(diff)} 남았어요`}</Btn>
+        <div style={{textAlign:"center",fontSize:13,color:C.sub,marginBottom:8,fontWeight:700}}>
+          💡 배분을 완료하면 아래 <span style={{color:C.gold}}>투자 확정 버튼</span>을 눌러주세요!
+        </div>
+        <Btn fill full disabled={!matched||submitted} onClick={()=>doSubmit(a)}>{matched?"✅ 투자 확정!":`아직 ${fmt(diff)} 남았어요`}</Btn>
       </div>
       {onChangeJob&&(
         <div style={{marginTop:10,textAlign:"center"}}>
@@ -1110,41 +1132,44 @@ function RetirementCard({assets}){
   );
 }
 
-/* ====== 인생 역전 화면 ====== */
-function LifeChangeScreen({lc,name,onConfirm}){
-  const newJob=jobByName(lc.newJob)||{emoji:lc.newEmoji,name:lc.newJob,tag:lc.newTag||""};
-  const [revealed,setRevealed]=useState(false);
-  useEffect(()=>{ const t=setTimeout(()=>setRevealed(true),1800); return()=>clearTimeout(t); },[]);
+/* ====== 인생 역전 화면 (yes/no 선택) ====== */
+function LifeChangeScreen({name,onAnswer}){
+  const [answered,setAnswered]=useState(false);
+  const [myAnswer,setMyAnswer]=useState(null);
+  const pick=(a)=>{ if(answered) return; setAnswered(true); setMyAnswer(a); onAnswer(a); };
   return(
     <Centered>
       <div style={{width:"100%",maxWidth:380,textAlign:"center",animation:"pop .5s"}}>
-        <div style={{fontSize:18,fontWeight:900,color:"#8b5cf6",letterSpacing:2,animation:"blink .8s infinite"}}>⚡ 인생이 바뀌었습니다! ⚡</div>
-        <div style={{background:"linear-gradient(135deg,#4c1d95,#7c3aed)",borderRadius:20,padding:"28px 24px",marginTop:14,color:"#fff",boxShadow:"0 8px 32px #7c3aed55"}}>
-          <div style={{fontSize:13,opacity:0.8,marginBottom:8}}>{name}님의 직업이 바뀌었어요!</div>
-          <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:16,marginTop:8}}>
-            <div style={{opacity:0.6}}>
-              <div style={{fontSize:32}}>😱</div>
-              <div style={{fontSize:13,marginTop:4}}>{lc.oldJob}</div>
-            </div>
-            <div style={{fontSize:28}}>→</div>
-            <div style={{animation:revealed?"fanfare .6s":"none"}}>
-              {revealed?(
-                <>
-                  <div style={{fontSize:52}}>{newJob.emoji}</div>
-                  <div style={{fontFamily:"'Black Han Sans'",fontSize:22,marginTop:6}}>{newJob.name}</div>
-                  <div style={{fontSize:12,opacity:0.8,marginTop:4}}>{newJob.tag}</div>
-                </>
-              ):(
-                <div style={{fontSize:52,animation:"blink .5s infinite"}}>❓</div>
-              )}
-            </div>
+        <div style={{fontSize:52,animation:"blink .7s infinite"}}>🎲</div>
+        <div style={{fontFamily:"'Black Han Sans'",fontSize:26,color:"#8b5cf6",marginTop:8,lineHeight:1.3}}>다른 사람으로<br/>살아볼 기회!</div>
+        <div style={{background:"linear-gradient(135deg,#4c1d95,#7c3aed)",borderRadius:20,padding:"24px 20px",marginTop:16,color:"#fff",boxShadow:"0 8px 32px #7c3aed55"}}>
+          <div style={{fontSize:14,lineHeight:1.8}}>
+            {name}님에게 특별한 기회가 왔어요!<br/>
+            <b>다른 학생의 자산 전체와 교환</b>할 수 있어요.<br/>
+            <span style={{opacity:0.8,fontSize:12}}>누구와 바뀌는지는 랜덤이에요 😅</span>
           </div>
-          <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"10px 14px",marginTop:20,fontSize:13,lineHeight:1.6}}>
-            선택권은 없어요. 이게 바로 인생입니다. 😅<br/>
-            <b>다음 라운드부터</b> 새 직업으로 시작해요!
+          <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"10px 14px",marginTop:16,fontSize:13}}>
+            ✅ <b>바꾸겠다</b>고 한 학생들끼리만 교환돼요<br/>
+            ❌ <b>거절하면</b> 내 자산 그대로 유지해요
           </div>
         </div>
-        {revealed&&<div style={{marginTop:16}}><Btn fill full onClick={onConfirm}>알겠어요… 계속하기 →</Btn></div>}
+        {!answered?(
+          <div style={{display:"flex",gap:10,marginTop:18}}>
+            <button onClick={()=>pick("yes")} style={{flex:1,padding:"16px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#7c3aed,#8b5cf6)",color:"#fff",fontFamily:"'Black Han Sans'",fontSize:18,cursor:"pointer",boxShadow:"0 4px 16px #7c3aed55"}}>
+              🔄 바꿀게요!
+            </button>
+            <button onClick={()=>pick("no")} style={{flex:1,padding:"16px 0",borderRadius:14,border:"2px solid #e2e8f0",background:"#fff",color:"#64748b",fontFamily:"'Black Han Sans'",fontSize:18,cursor:"pointer"}}>
+              🙅 거절할게요
+            </button>
+          </div>
+        ):(
+          <div style={{marginTop:18,background:C.panel,border:`2px solid ${myAnswer==="yes"?"#8b5cf6":C.line}`,borderRadius:14,padding:16,textAlign:"center"}}>
+            {myAnswer==="yes"
+              ? <><div style={{fontSize:28}}>✅</div><div style={{fontWeight:900,color:"#8b5cf6",marginTop:6}}>교환 신청 완료!</div><div style={{color:C.sub,fontSize:13,marginTop:4}}>다연쌤이 교환을 실행하면 바뀌어요</div></>
+              : <><div style={{fontSize:28}}>🙅</div><div style={{fontWeight:900,marginTop:6}}>거절하셨어요</div><div style={{color:C.sub,fontSize:13,marginTop:4}}>내 자산이 그대로 유지돼요</div></>
+            }
+          </div>
+        )}
       </div>
     </Centered>
   );
@@ -1260,6 +1285,7 @@ function AdminView({onBack,room}){
   const [pickNews,setPickNews]=useState(false);
 
   useEffect(()=>{
+    startBGM();
     let active=true;
     const tick=async()=>{
       const g=await sGet(GKEY);
@@ -1269,7 +1295,7 @@ function AdminView({onBack,room}){
       setGame(g); setPlayers(list.sort((a,b)=>netWorth(b)-netWorth(a)));
     };
     tick(); const iv=setInterval(tick,2000);
-    return()=>{active=false;clearInterval(iv);};
+    return()=>{active=false;clearInterval(iv);stopBGM();};
   },[]);
 
   const round=game?.round||1,phase=game?.phase||"invest";
@@ -1287,17 +1313,27 @@ function AdminView({onBack,room}){
     else sSet(GKEY,{round:nr,phase:"invest",newsId:null});
   };
   const triggerLifeChange=async()=>{
-    const sorted=[...players].sort((a,b)=>netWorth(b)-netWorth(a));
-    const targets=[sorted[6],sorted[16]].filter(Boolean);
-    if (targets.length===0){alert("대상 학생이 없어요 (7등 또는 17등)"); return;}
-    for (const p of targets){
-      const curJob=p.job;
-      const others=JOBS.filter(j=>j.name!==curJob);
-      const newJob=others[Math.floor(Math.random()*others.length)];
-      const updated={...p, lifeChange:{newJob:newJob.name,newEmoji:newJob.emoji,newTag:newJob.tag,oldJob:curJob}, lifeChangeAck:false};
-      await sSet(mkPKey(room,p.id),updated);
+    await sSet(GKEY,{...game, lifeChange:{active:true}});
+  };
+  const executeSwap=async()=>{
+    const yesPlayers=players.filter(p=>p.lifeChangeResponse==="yes"&&p.lifeChangeResponded);
+    if (yesPlayers.length<2){alert("교환할 학생이 2명 이상 필요해요!"); return;}
+    // 홀수면 마지막 1명은 제외
+    const pairs=[...yesPlayers].sort(()=>Math.random()-.5);
+    const swapKeys=["bitcoin","stock","savings","realestate","luxury","checking","insurance","parents","job"];
+    for (let i=0;i<Math.floor(pairs.length/2);i++){
+      const a={...pairs[i*2]}, b={...pairs[i*2+1]};
+      const tmpA=swapKeys.reduce((o,k)=>({...o,[k]:a[k]}),{});
+      const newA={...a,...swapKeys.reduce((o,k)=>({...o,[k]:b[k]}),{}),lifeChangeResponse:null,lifeChangeResponded:false,name:a.name,id:a.id};
+      const newB={...b,...tmpA,lifeChangeResponse:null,lifeChangeResponded:false,name:b.name,id:b.id};
+      await sSet(mkPKey(room,a.id),newA);
+      await sSet(mkPKey(room,b.id),newB);
     }
-    alert(`인생 역전 발동! 대상: ${targets.map(p=>p.name).join(", ")}`);
+    // 거절자 응답 초기화
+    const noPlayers=players.filter(p=>p.lifeChangeResponse==="no"||!p.lifeChangeResponded);
+    for (const p of noPlayers) await sSet(mkPKey(room,p.id),{...p,lifeChangeResponse:null,lifeChangeResponded:false});
+    await sSet(GKEY,{...game, lifeChange:{active:false}});
+    alert(`교환 완료! ${Math.floor(yesPlayers.length/2)}쌍 교환됨`);
   };
   const endGame=()=>sSet(GKEY,{...(game||{round:1}),phase:"end"});
   const reset=async()=>{const keys=await sList(ppfx);await Promise.all(keys.map(sDel));await sDel(GKEY);setPlayers([]);setGame(null);};
@@ -1339,8 +1375,11 @@ function AdminView({onBack,room}){
             {(game?.round||1)>=TOTAL_ROUNDS?"🏁 최종 순위 발표":`⏭ 다음 단계 (${getRoundMeta((game?.round||1)+1).label})`}
           </Btn>
         )}
-        {game&&phase==="news"&&round>=3&&(
-          <Btn color="#8b5cf6" onClick={()=>{if(confirm(`3턴 이후 인생 역전! 7등과 17등의 직업이 랜덤으로 바뀝니다. 발동할까요?`)) triggerLifeChange();}}>🎲 인생 역전!</Btn>
+        {game&&!game.lifeChange?.active&&round>=3&&(
+          <Btn color="#8b5cf6" onClick={()=>{if(confirm("인생 역전 발동! 학생들에게 바꿀지 말지 선택하게 합니다.")) triggerLifeChange();}}>🎲 인생 역전 발동!</Btn>
+        )}
+        {game?.lifeChange?.active&&(
+          <Btn color="#7c3aed" fill onClick={()=>{if(confirm("YES 학생들끼리 교환 실행!")) executeSwap();}}>⚡ 교환 실행!</Btn>
         )}
         {game&&phase!=="end"&&(
           <Btn color={C.gold} onClick={()=>{if(confirm("게임을 종료하고 최종 순위를 발표할까요?")) endGame();}}>🏁 게임 종료</Btn>
@@ -1348,6 +1387,17 @@ function AdminView({onBack,room}){
       </div>
 
       {phase==="news"&&game?.newsId&&<NewsBanner event={eventById(game.newsId)}/>}
+      {game?.lifeChange?.active&&(()=>{
+        const yes=players.filter(p=>p.lifeChangeResponse==="yes").length;
+        const no=players.filter(p=>p.lifeChangeResponse==="no").length;
+        const waiting=players.filter(p=>!p.lifeChangeResponded).length;
+        return(
+          <div style={{background:"#f5f3ff",border:"2px solid #8b5cf6",borderRadius:12,padding:"10px 14px",marginTop:10}}>
+            <span style={{fontWeight:900,color:"#7c3aed"}}>🎲 인생 역전 응답 현황 </span>
+            <span style={{color:C.sub,fontSize:13}}>✅ 바꿀게요 <b style={{color:"#7c3aed"}}>{yes}명</b> &nbsp; ❌ 거절 <b>{no}명</b> &nbsp; ⏳ 미응답 <b>{waiting}명</b></span>
+          </div>
+        );
+      })()}
 
       {phase==="invest"&&notReady.length>0&&(
         <div style={{background:"#fff8e1",border:`1px solid #f59e0b`,borderRadius:12,padding:"10px 14px",marginTop:10}}>
