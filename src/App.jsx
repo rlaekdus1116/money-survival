@@ -75,8 +75,51 @@ function playSound(type) {
       g.gain.setValueAtTime(0.12, ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
       o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.5);
+    } else if (type === "siren") {
+      [0, 0.45].forEach(offset => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(440, ctx.currentTime + offset);
+        o.frequency.linearRampToValueAtTime(880, ctx.currentTime + offset + 0.35);
+        o.frequency.linearRampToValueAtTime(440, ctx.currentTime + offset + 0.7);
+        g.gain.setValueAtTime(0.18, ctx.currentTime + offset);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.75);
+        o.start(ctx.currentTime + offset); o.stop(ctx.currentTime + offset + 0.8);
+      });
     }
   } catch(e) {}
+}
+
+let _bgmPlaying = false;
+let _bgmTimer = null;
+const BGM_NOTES = [523,659,784,1047,784,1047,784,659,523,440,523,659];
+const BGM_DUR = 0.18;
+function startBGM() {
+  if (_bgmPlaying) return;
+  _bgmPlaying = true;
+  const loop = () => {
+    if (!_bgmPlaying) return;
+    try {
+      unlockAudio();
+      const ctx = _audioCtx; if (!ctx) return;
+      BGM_NOTES.forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = f; o.type = "sine";
+        const t = ctx.currentTime + i * BGM_DUR;
+        g.gain.setValueAtTime(0.06, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + BGM_DUR * 0.9);
+        o.start(t); o.stop(t + BGM_DUR);
+      });
+    } catch(e) {}
+    _bgmTimer = setTimeout(loop, BGM_NOTES.length * BGM_DUR * 1000 + 800);
+  };
+  loop();
+}
+function stopBGM() {
+  _bgmPlaying = false;
+  if (_bgmTimer) { clearTimeout(_bgmTimer); _bgmTimer = null; }
 }
 
 /* ====== 직업 (연대별 월급 + 생활비) ====== */
@@ -588,6 +631,7 @@ function PlayGame({onBack,room}){
   const [event,setEvent]=useState(null);
   const [finalList,setFinalList]=useState([]);
   const [pendingLifeEv,setPendingLifeEv]=useState(null);
+  const [pendingLifeChange,setPendingLifeChange]=useState(null);
   const [ageInfo,setAgeInfo]=useState(null);
   const idRef=useRef(uid());
   const recRef=useRef(null),roundRef=useRef(1),stepRef=useRef("name");
@@ -644,7 +688,10 @@ function PlayGame({onBack,room}){
       }
       const r=recRef.current;
       if (!r) return;
-      if (g.phase==="invest"&&(r.lastSalaryRound||0)<g.round) {
+      if (r.lifeChange&&!r.lifeChangeAck&&stepRef.current!=="lifeChange") {
+        setPendingLifeChange(r.lifeChange);
+        setStep("lifeChange");
+      } else if (g.phase==="invest"&&(r.lastSalaryRound||0)<g.round) {
         beginRound(r,g.round);
       } else if (g.phase==="news"&&g.newsId&&stepRef.current==="waiting") {
         // 투자를 마친(waiting) 학생만 속보로 이동 — 청구서/투자중인 학생은 영향 없음
@@ -666,6 +713,7 @@ function PlayGame({onBack,room}){
     setRec(r); recRef.current=r;
     setPendingLifeEv(null);
     write(r,rnd);
+    startBGM();
     setStep("bill");
   };
 
@@ -675,6 +723,17 @@ function PlayGame({onBack,room}){
     const r={...rec,job:job.name,jobChanged:true,checking:0,lastSalaryAmt:0,lastLivingAmt:living,ready:true};
     setRec(r); recRef.current=r; write(r);
     setStep("jobchanged");
+  };
+
+  const confirmLifeChange=()=>{
+    const lc=pendingLifeChange;
+    const r={...recRef.current, job:lc.newJob, lifeChangeAck:true};
+    setRec(r); recRef.current=r; write(r);
+    setPendingLifeChange(null);
+    // 이미 현재 라운드 진행중이면 bill로, 아니면 waiting으로
+    const g_round=roundRef.current;
+    if ((r.lastSalaryRound||0)>=g_round) setStep("waiting");
+    else setStep("bill");
   };
 
   const confirmBill=()=>{
@@ -714,6 +773,7 @@ function PlayGame({onBack,room}){
   if (step==="name") return <JoinScreen name={name} setName={setName} onJoin={()=>setStep("job")} onBack={onBack}/>;
   if (step==="job") return <JobPick name={name} onPickJob={startJob} onBack={()=>setStep("name")}/>;
   if (step==="rejob") return <JobPick name={name} onPickJob={changeJob} onBack={()=>setStep("invest")} rejob/>;
+  if (step==="lifeChange"&&pendingLifeChange) return <LifeChangeScreen lc={pendingLifeChange} name={name} onConfirm={confirmLifeChange}/>;
   if (step==="ageTransition"&&ageInfo) return <AgeTransitionScreen info={ageInfo} onContinue={()=>setStep(ageInfo.rankNext?"ranking":"bill")}/>;
   if (step==="ranking") return <MidRankingScreen room={room} round={round} onContinue={()=>setStep("bill")}/>;
   if (step==="jobchanged") {
@@ -759,7 +819,7 @@ function PlayGame({onBack,room}){
         </div>
       </div>
       <Portfolio rec={rec}/>
-      {step==="invest"&&<InvestScreen rec={rec} onSubmit={confirmInvest} onChangeJob={!rec.jobChanged?()=>setStep("rejob"):null}/>}
+      {step==="invest"&&<InvestScreen rec={rec} name={name} onSubmit={confirmInvest} onChangeJob={!rec.jobChanged?()=>setStep("rejob"):null}/>}
       {step==="waiting"&&(
         <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:26,marginTop:14,textAlign:"center"}}>
           <div style={{fontSize:40,animation:"blink 1.6s infinite"}}>📡</div>
@@ -851,17 +911,57 @@ function JobPick({name,onPickJob,onBack,rejob}){
   );
 }
 
-function InvestScreen({rec,onSubmit,onChangeJob}){
+const INVEST_TIME = 45;
+function InvestScreen({rec,name,onSubmit,onChangeJob}){
   const available=rec.checking;
   const [a,setA]=useState(()=>Object.fromEntries(ALLOC.map(x=>[x.key,0])));
+  const [timeLeft,setTimeLeft]=useState(INVEST_TIME);
+  const [submitted,setSubmitted]=useState(false);
+  const aRef=useRef(a);
+  useEffect(()=>{ aRef.current=a; },[a]);
   const used=ALLOC.reduce((s,x)=>s+(a[x.key]||0),0);
   const diff=available-used, matched=diff===0;
   const maxFor=(k)=>available-(used-(a[k]||0));
   const set=(k,v)=>setA(prev=>({...prev,[k]:Math.min(maxFor(k),Math.max(0,v))}));
   const totalNet=netWorth(rec);
 
+  const doSubmit=(alloc)=>{ if(submitted) return; setSubmitted(true); stopBGM(); onSubmit(alloc); };
+
+  useEffect(()=>{
+    if (available===0) return; // 투자 금액 없으면 타이머 불필요
+    const iv=setInterval(()=>{
+      setTimeLeft(prev=>{
+        if (prev<=1){
+          clearInterval(iv);
+          const cur=aRef.current;
+          const usedNow=ALLOC.reduce((s,x)=>s+(cur[x.key]||0),0);
+          const rem=available-usedNow;
+          doSubmit({...cur, checking:(cur.checking||0)+rem});
+          return 0;
+        }
+        if (prev===4) playSound("siren");
+        return prev-1;
+      });
+    },1000);
+    return ()=>clearInterval(iv);
+  },[]);
+
+  const urgent=timeLeft<=5&&timeLeft>0;
+
   return(
     <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:16,marginTop:14}}>
+      {/* 이름 + 타이머 헤더 */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,padding:"8px 12px",background:"linear-gradient(90deg,#f0f9ff,#fdf4ff)",borderRadius:12,border:`1px solid ${C.line}`}}>
+        <div style={{fontWeight:900,fontSize:16}}>👤 {name}</div>
+        {available>0&&(
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:12,color:C.sub}}>남은 시간</span>
+            <span style={{fontFamily:"'Black Han Sans'",fontSize:22,color:urgent?"#ef4444":timeLeft<=10?"#f59e0b":C.gold,
+              animation:urgent?"blink .6s infinite":"none"}}>{timeLeft}초</span>
+          </div>
+        )}
+      </div>
+      {urgent&&<div style={{background:"#fef2f2",border:`1px solid #ef4444`,borderRadius:8,padding:"6px 12px",marginBottom:10,color:"#ef4444",fontWeight:700,fontSize:13,textAlign:"center",animation:"blink .6s infinite"}}>⚠️ 시간이 얼마 없어요! 미배분 금액은 입출금통장으로 자동 이동돼요!</div>}
 
       {/* 누적 총자산 요약 */}
       <div style={{background:"linear-gradient(90deg,#fff8e8,#fdf4ff)",border:`1px solid ${C.gold}`,borderRadius:12,padding:"10px 14px",marginBottom:14}}>
@@ -929,7 +1029,7 @@ function InvestScreen({rec,onSubmit,onChangeJob}){
       </div>
 
       <div style={{marginTop:14}}>
-        <Btn fill full disabled={!matched} onClick={()=>onSubmit(a)}>{matched?"투자 확정 →":`아직 ${fmt(diff)} 남았어요`}</Btn>
+        <Btn fill full disabled={!matched||submitted} onClick={()=>doSubmit(a)}>{matched?"투자 확정 →":`아직 ${fmt(diff)} 남았어요`}</Btn>
       </div>
       {onChangeJob&&(
         <div style={{marginTop:10,textAlign:"center"}}>
@@ -1007,6 +1107,46 @@ function RetirementCard({assets}){
       </div>
       {actualAge<lifeExpect&&<div style={{color:C.sub,fontSize:11,textAlign:"center",marginTop:2}}>평균 수명 {lifeExpect}세 기준 · 은퇴 후 자금이 부족해요</div>}
     </div>
+  );
+}
+
+/* ====== 인생 역전 화면 ====== */
+function LifeChangeScreen({lc,name,onConfirm}){
+  const newJob=jobByName(lc.newJob)||{emoji:lc.newEmoji,name:lc.newJob,tag:lc.newTag||""};
+  const [revealed,setRevealed]=useState(false);
+  useEffect(()=>{ const t=setTimeout(()=>setRevealed(true),1800); return()=>clearTimeout(t); },[]);
+  return(
+    <Centered>
+      <div style={{width:"100%",maxWidth:380,textAlign:"center",animation:"pop .5s"}}>
+        <div style={{fontSize:18,fontWeight:900,color:"#8b5cf6",letterSpacing:2,animation:"blink .8s infinite"}}>⚡ 인생이 바뀌었습니다! ⚡</div>
+        <div style={{background:"linear-gradient(135deg,#4c1d95,#7c3aed)",borderRadius:20,padding:"28px 24px",marginTop:14,color:"#fff",boxShadow:"0 8px 32px #7c3aed55"}}>
+          <div style={{fontSize:13,opacity:0.8,marginBottom:8}}>{name}님의 직업이 바뀌었어요!</div>
+          <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:16,marginTop:8}}>
+            <div style={{opacity:0.6}}>
+              <div style={{fontSize:32}}>😱</div>
+              <div style={{fontSize:13,marginTop:4}}>{lc.oldJob}</div>
+            </div>
+            <div style={{fontSize:28}}>→</div>
+            <div style={{animation:revealed?"fanfare .6s":"none"}}>
+              {revealed?(
+                <>
+                  <div style={{fontSize:52}}>{newJob.emoji}</div>
+                  <div style={{fontFamily:"'Black Han Sans'",fontSize:22,marginTop:6}}>{newJob.name}</div>
+                  <div style={{fontSize:12,opacity:0.8,marginTop:4}}>{newJob.tag}</div>
+                </>
+              ):(
+                <div style={{fontSize:52,animation:"blink .5s infinite"}}>❓</div>
+              )}
+            </div>
+          </div>
+          <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"10px 14px",marginTop:20,fontSize:13,lineHeight:1.6}}>
+            선택권은 없어요. 이게 바로 인생입니다. 😅<br/>
+            <b>다음 라운드부터</b> 새 직업으로 시작해요!
+          </div>
+        </div>
+        {revealed&&<div style={{marginTop:16}}><Btn fill full onClick={onConfirm}>알겠어요… 계속하기 →</Btn></div>}
+      </div>
+    </Centered>
   );
 }
 
@@ -1146,6 +1286,19 @@ function AdminView({onBack,room}){
     if (nr>TOTAL_ROUNDS) sSet(GKEY,{...(game||{round:1}),phase:"end"});
     else sSet(GKEY,{round:nr,phase:"invest",newsId:null});
   };
+  const triggerLifeChange=async()=>{
+    const sorted=[...players].sort((a,b)=>netWorth(b)-netWorth(a));
+    const targets=[sorted[6],sorted[16]].filter(Boolean);
+    if (targets.length===0){alert("대상 학생이 없어요 (7등 또는 17등)"); return;}
+    for (const p of targets){
+      const curJob=p.job;
+      const others=JOBS.filter(j=>j.name!==curJob);
+      const newJob=others[Math.floor(Math.random()*others.length)];
+      const updated={...p, lifeChange:{newJob:newJob.name,newEmoji:newJob.emoji,newTag:newJob.tag,oldJob:curJob}, lifeChangeAck:false};
+      await sSet(mkPKey(room,p.id),updated);
+    }
+    alert(`인생 역전 발동! 대상: ${targets.map(p=>p.name).join(", ")}`);
+  };
   const endGame=()=>sSet(GKEY,{...(game||{round:1}),phase:"end"});
   const reset=async()=>{const keys=await sList(ppfx);await Promise.all(keys.map(sDel));await sDel(GKEY);setPlayers([]);setGame(null);};
 
@@ -1185,6 +1338,9 @@ function AdminView({onBack,room}){
           <Btn fill onClick={next}>
             {(game?.round||1)>=TOTAL_ROUNDS?"🏁 최종 순위 발표":`⏭ 다음 단계 (${getRoundMeta((game?.round||1)+1).label})`}
           </Btn>
+        )}
+        {game&&phase==="news"&&round>=3&&(
+          <Btn color="#8b5cf6" onClick={()=>{if(confirm(`3턴 이후 인생 역전! 7등과 17등의 직업이 랜덤으로 바뀝니다. 발동할까요?`)) triggerLifeChange();}}>🎲 인생 역전!</Btn>
         )}
         {game&&phase!=="end"&&(
           <Btn color={C.gold} onClick={()=>{if(confirm("게임을 종료하고 최종 순위를 발표할까요?")) endGame();}}>🏁 게임 종료</Btn>
